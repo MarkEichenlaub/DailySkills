@@ -363,11 +363,53 @@
                 min-height: 150px;
             }
         }
+        .auth-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .auth-bar .user-name {
+            opacity: 0.9;
+        }
+
+        .auth-bar button {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.75rem;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .auth-bar button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .sync-status {
+            font-size: 0.7rem;
+            opacity: 0.7;
+        }
     </style>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
     <header>
         <h1>Daily Skill Practice</h1>
+        <div class="auth-bar" id="authBar">
+            <span class="sync-status" id="syncStatus"></span>
+            <button id="signInBtn" onclick="app.signIn()" style="display:none;">Sign in with Google</button>
+            <span class="user-name" id="userName" style="display:none;"></span>
+            <button id="signOutBtn" onclick="app.signOut()" style="display:none;">Sign out</button>
+        </div>
     </header>
 
     <div class="container">
@@ -459,6 +501,27 @@
     </div>
 
     <script>
+        // Firebase configuration - PASTE YOUR CONFIG VALUES HERE
+        const firebaseConfig = {
+            apiKey: "AIzaSyAKOMmtSGJiGWngb2WZsZPjQY73WkQRN6Y",
+            authDomain: "dailyskills-ed244.firebaseapp.com",
+            projectId: "dailyskills-ed244",
+            storageBucket: "dailyskills-ed244.firebasestorage.app",
+            messagingSenderId: "995753614850",
+            appId: "1:995753614850:web:b7bc2426b7187c3ac6911b"
+        };
+
+        // Initialize Firebase
+        let db = null;
+        let auth = null;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
+        } catch (e) {
+            console.log('Firebase init skipped (config not set or SDK unavailable):', e.message);
+        }
+
         // Core App Class
         class SkillPracticeApp {
             constructor() {
@@ -484,10 +547,63 @@
                 };
                 this.advanceListener = null;
                 this.autoAdvanceTimeout = null;
-                
+                this.firebaseUser = null;
+
                 this.loadUserData();
                 this.registerSkills();
                 this.updateUI();
+                this.initAuth();
+            }
+
+            initAuth() {
+                if (!auth) {
+                    // Firebase not configured, show nothing
+                    document.getElementById('signInBtn').style.display = 'none';
+                    return;
+                }
+
+                auth.onAuthStateChanged(async (user) => {
+                    this.firebaseUser = user;
+                    const signInBtn = document.getElementById('signInBtn');
+                    const signOutBtn = document.getElementById('signOutBtn');
+                    const userName = document.getElementById('userName');
+
+                    if (user) {
+                        signInBtn.style.display = 'none';
+                        userName.textContent = user.displayName || user.email;
+                        userName.style.display = 'inline';
+                        signOutBtn.style.display = 'inline';
+                        await this.loadFromFirestore();
+                    } else {
+                        signInBtn.style.display = 'inline';
+                        userName.style.display = 'none';
+                        signOutBtn.style.display = 'none';
+                        this.setSyncStatus('');
+                    }
+                });
+            }
+
+            async signIn() {
+                if (!auth) return;
+                try {
+                    const provider = new firebase.auth.GoogleAuthProvider();
+                    await auth.signInWithPopup(provider);
+                } catch (e) {
+                    console.error('Sign-in error:', e);
+                }
+            }
+
+            async signOut() {
+                if (!auth) return;
+                try {
+                    await auth.signOut();
+                } catch (e) {
+                    console.error('Sign-out error:', e);
+                }
+            }
+
+            setSyncStatus(text) {
+                document.getElementById('syncStatus').textContent = text;
             }
 
             registerSkills() {
@@ -504,7 +620,7 @@
                 if (saved) {
                     const data = JSON.parse(saved);
                     this.userData = data.userData || this.userData;
-                    
+
                     // Load skill data
                     if (data.skills) {
                         this.skills.forEach(skill => {
@@ -513,18 +629,18 @@
                             }
                         });
                     }
-                    
+
                     // Update streak
                     const today = new Date().toDateString();
                     const lastDate = this.userData.lastPracticeDate;
-                    
+
                     if (lastDate === today) {
                         // Already practiced today
                     } else if (lastDate) {
                         const last = new Date(lastDate);
                         const now = new Date();
                         const diffDays = Math.floor((now - last) / (1000 * 60 * 60 * 24));
-                        
+
                         if (diffDays === 1) {
                             // Continue streak
                         } else if (diffDays > 1) {
@@ -532,28 +648,95 @@
                             this.userData.streak = 0;
                         }
                     }
-                    
+
                     // Reset daily minutes if new day
                     if (lastDate !== today) {
                         this.userData.todayMinutes = 0;
                     }
                 }
-                
+
                 // Update checkbox
                 document.getElementById('autoAdvanceCheckbox').checked = this.userData.autoAdvance;
             }
 
-            saveUserData() {
+            getDataSnapshot() {
                 const data = {
                     userData: this.userData,
                     skills: {}
                 };
-                
                 this.skills.forEach(skill => {
                     data.skills[skill.id] = skill.getData();
                 });
-                
+                return data;
+            }
+
+            saveUserData() {
+                const data = this.getDataSnapshot();
                 localStorage.setItem('skillPracticeData', JSON.stringify(data));
+                this.saveToFirestore(data);
+            }
+
+            async saveToFirestore(data) {
+                if (!db || !this.firebaseUser) return;
+                try {
+                    this.setSyncStatus('syncing...');
+                    await db.collection('users').doc(this.firebaseUser.uid)
+                        .collection('data').doc('progress')
+                        .set(data);
+                    this.setSyncStatus('synced');
+                } catch (e) {
+                    console.error('Firestore save error:', e);
+                    this.setSyncStatus('sync error');
+                }
+            }
+
+            async loadFromFirestore() {
+                if (!db || !this.firebaseUser) return;
+                try {
+                    this.setSyncStatus('loading...');
+                    const doc = await db.collection('users').doc(this.firebaseUser.uid)
+                        .collection('data').doc('progress')
+                        .get();
+
+                    if (doc.exists) {
+                        const cloudData = doc.data();
+                        const localData = this.getDataSnapshot();
+                        const merged = this.mergeData(localData, cloudData);
+
+                        // Apply merged data
+                        this.userData = merged.userData;
+                        if (merged.skills) {
+                            this.skills.forEach(skill => {
+                                if (merged.skills[skill.id]) {
+                                    skill.loadData(merged.skills[skill.id]);
+                                }
+                            });
+                        }
+
+                        // Save merged result to both stores
+                        localStorage.setItem('skillPracticeData', JSON.stringify(merged));
+                        await db.collection('users').doc(this.firebaseUser.uid)
+                            .collection('data').doc('progress')
+                            .set(merged);
+
+                        document.getElementById('autoAdvanceCheckbox').checked = this.userData.autoAdvance;
+                        this.updateUI();
+                        this.setSyncStatus('synced');
+                    } else {
+                        // No cloud data yet, push local data up
+                        await this.saveToFirestore(this.getDataSnapshot());
+                    }
+                } catch (e) {
+                    console.error('Firestore load error:', e);
+                    this.setSyncStatus('sync error');
+                }
+            }
+
+            mergeData(local, cloud) {
+                // Simple merge: whichever source has more totalTrials wins
+                const localTrials = (local.userData && local.userData.totalTrials) || 0;
+                const cloudTrials = (cloud.userData && cloud.userData.totalTrials) || 0;
+                return cloudTrials >= localTrials ? cloud : local;
             }
 
             toggleAutoAdvance() {
@@ -561,9 +744,18 @@
                 this.saveUserData();
             }
 
-            resetAllData() {
+            async resetAllData() {
                 if (confirm('Are you sure you want to reset all data? This cannot be undone.')) {
                     localStorage.removeItem('skillPracticeData');
+                    if (db && this.firebaseUser) {
+                        try {
+                            await db.collection('users').doc(this.firebaseUser.uid)
+                                .collection('data').doc('progress')
+                                .delete();
+                        } catch (e) {
+                            console.error('Firestore delete error:', e);
+                        }
+                    }
                     location.reload();
                 }
             }
