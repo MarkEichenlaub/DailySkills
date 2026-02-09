@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Skill Practice</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        h2 {
+            margin: 0.5rem 0;
+        }
+        
+        h3 {
+            margin: 0.4rem 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 10px;
+            flex: 1;
+        }
+
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 0.5rem;
+            text-align: center;
+            margin-bottom: 0.75rem;
+        }
+
+        header h1 {
+            font-size: 1.4rem;
+            margin: 0;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.25rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 0.5rem;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.5rem;
+            margin: 0.5rem 0;
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: 0.5rem;
+            background: #ecf0f1;
+            border-radius: 4px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.85rem;
+        }
+
+        .timer-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0.75rem 0;
+            padding: 0.5rem;
+            background: #ecf0f1;
+            border-radius: 4px;
+        }
+
+        .timer {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .practice-area {
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 1rem 0;
+        }
+
+        .question {
+            font-size: 2rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        input[type="number"], input[type="text"] {
+            font-size: 1.5rem;
+            padding: 0.5rem 1rem;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+            width: 200px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            font-size: 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        button.secondary {
+            background: #95a5a6;
+        }
+
+        button.secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .feedback {
+            font-size: 1.1rem;
+            padding: 0.75rem;
+            border-radius: 4px;
+            margin: 0.5rem 0;
+            text-align: center;
+            min-height: 2.5rem;
+        }
+
+        .feedback.correct {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .feedback.incorrect {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .feedback.partial {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        .skill-list {
+            display: grid;
+            gap: 0.5rem;
+        }
+
+        .skill-item {
+            padding: 0.75rem;
+            background: #ecf0f1;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .skill-item:hover {
+            background: #d5dbdb;
+        }
+
+        .skill-info {
+            flex: 1;
+        }
+
+        .skill-name {
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .skill-stats {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        .menu {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #27ae60;
+            transition: width 0.3s ease;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .practice-layout {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .practice-main {
+            flex: 1;
+        }
+
+        .session-stats {
+            width: 180px;
+            background: #ecf0f1;
+            padding: 0.75rem;
+            border-radius: 4px;
+        }
+
+        canvas {
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            cursor: crosshair;
+            background: white;
+            max-width: 100%;
+            height: auto;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 5px;
+            }
+
+            header {
+                padding: 0.4rem;
+                margin-bottom: 0.5rem;
+            }
+
+            header h1 {
+                font-size: 1.1rem;
+            }
+
+            .card {
+                padding: 0.75rem;
+                margin-bottom: 0.4rem;
+            }
+
+            .question {
+                font-size: 1.5rem;
+            }
+
+            input[type="number"], input[type="text"] {
+                font-size: 1.2rem;
+                width: 150px;
+                padding: 0.4rem 0.8rem;
+            }
+
+            button {
+                padding: 0.3rem 0.6rem;
+                font-size: 0.8rem;
+            }
+
+            #continueButton {
+                padding: 0.4rem 1rem;
+                font-size: 0.9rem;
+                min-width: 80px;
+            }
+
+            .menu {
+                gap: 0.3rem;
+                margin-top: 0.3rem;
+            }
+
+            .timer {
+                font-size: 1rem;
+            }
+
+            .stat-value {
+                font-size: 1.2rem;
+            }
+
+            .stat-label {
+                font-size: 0.75rem;
+            }
+
+            .feedback {
+                font-size: 0.9rem;
+                padding: 0.5rem;
+            }
+
+            .practice-layout {
+                flex-direction: column-reverse;
+            }
+
+            .session-stats {
+                width: 100%;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.25rem 1rem;
+                align-items: center;
+            }
+
+            .session-stats h3 {
+                margin-right: 0.5rem;
+            }
+
+            .session-stats > div {
+                margin: 0 !important;
+            }
+
+            .practice-area {
+                min-height: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Daily Skill Practice</h1>
+    </header>
+
+    <div class="container">
+        <!-- Home Screen -->
+        <div id="homeScreen" class="screen active">
+            <div class="card">
+                <h2>Today's Progress</h2>
+                <div class="stats">
+                    <div class="stat-box">
+                        <div class="stat-value" id="todayTime">0</div>
+                        <div class="stat-label">Minutes Today</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="streak">0</div>
+                        <div class="stat-label">Day Streak</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="totalTrials">0</div>
+                        <div class="stat-label">Total Trials</div>
+                    </div>
+                </div>
+                <button onclick="app.startPractice()" style="width: 100%; margin-top: 1rem; padding: 1rem; font-size: 1.1rem;">
+                    Start Practice
+                </button>
+            </div>
+
+            <div class="card">
+                <h2>Skills</h2>
+                <div id="skillList" class="skill-list"></div>
+            </div>
+
+            <div class="card">
+                <h2>Settings</h2>
+                <label style="display: block; margin: 0.5rem 0;">
+                    <input type="checkbox" id="autoAdvanceCheckbox" onchange="app.toggleAutoAdvance()">
+                    Auto-advance on perfect answers (3 second delay)
+                </label>
+                <div style="margin-top: 1rem;">
+                    <button onclick="app.resetAllData()" class="secondary">Reset All Data</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Practice Screen -->
+        <div id="practiceScreen" class="screen">
+            <div class="card">
+                <div class="timer-section">
+                    <div>
+                        <strong id="currentSkillName">Skill</strong>
+                    </div>
+                    <div class="timer" id="practiceTimer">5:00</div>
+                </div>
+
+                <div class="practice-layout">
+                    <div class="practice-main">
+                        <div class="practice-area">
+                            <div class="question" id="questionText"></div>
+                            <div id="inputArea"></div>
+                            <div class="feedback" id="feedback"></div>
+                            <button id="continueButton" class="hidden" onclick="app.nextTrial()">
+                                Continue (Enter)
+                            </button>
+                        </div>
+
+                        <div class="menu">
+                            <button onclick="app.pausePractice()" class="secondary">Pause</button>
+                            <button onclick="app.endPractice()" class="secondary">End Practice</button>
+                        </div>
+                    </div>
+
+                    <div class="session-stats">
+                        <h3>Session Stats</h3>
+                        <div style="margin: 0.5rem 0;">
+                            <strong>Trials:</strong> <span id="sessionTrials">0</span>
+                        </div>
+                        <div style="margin: 0.5rem 0;">
+                            <strong>Correct:</strong> <span id="sessionCorrect">0</span>
+                        </div>
+                        <div style="margin: 0.5rem 0;">
+                            <strong>Accuracy:</strong> <span id="sessionAccuracy">-</span>
+                        </div>
+                        <div style="margin: 0.5rem 0;">
+                            <strong>Avg Score:</strong> <span id="sessionAvgScore">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Core App Class
+        class SkillPracticeApp {
+            constructor() {
+                this.skills = [];
+                this.currentSkill = null;
+                this.sessionStartTime = null;
+                this.sessionEndTime = null;
+                this.timerInterval = null;
+                this.practiceTimeSeconds = 300; // 5 minutes
+                this.remainingSeconds = this.practiceTimeSeconds;
+                this.currentTrial = null;
+                this.sessionData = {
+                    trials: 0,
+                    correct: 0,
+                    totalScore: 0
+                };
+                this.userData = {
+                    totalTrials: 0,
+                    streak: 0,
+                    lastPracticeDate: null,
+                    todayMinutes: 0,
+                    autoAdvance: true
+                };
+                this.advanceListener = null;
+                this.autoAdvanceTimeout = null;
+                
+                this.loadUserData();
+                this.registerSkills();
+                this.updateUI();
+            }
+
+            registerSkills() {
+                // Register all available skills
+                this.skills = [
+                    new FahrenheitToCelsiusSkill(),
+                    new CelsiusToFahrenheitSkill(),
+                    new AngleEstimationSkill()
+                ];
+            }
+
+            loadUserData() {
+                const saved = localStorage.getItem('skillPracticeData');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    this.userData = data.userData || this.userData;
+                    
+                    // Load skill data
+                    if (data.skills) {
+                        this.skills.forEach(skill => {
+                            if (data.skills[skill.id]) {
+                                skill.loadData(data.skills[skill.id]);
+                            }
+                        });
+                    }
+                    
+                    // Update streak
+                    const today = new Date().toDateString();
+                    const lastDate = this.userData.lastPracticeDate;
+                    
+                    if (lastDate === today) {
+                        // Already practiced today
+                    } else if (lastDate) {
+                        const last = new Date(lastDate);
+                        const now = new Date();
+                        const diffDays = Math.floor((now - last) / (1000 * 60 * 60 * 24));
+                        
+                        if (diffDays === 1) {
+                            // Continue streak
+                        } else if (diffDays > 1) {
+                            // Streak broken
+                            this.userData.streak = 0;
+                        }
+                    }
+                    
+                    // Reset daily minutes if new day
+                    if (lastDate !== today) {
+                        this.userData.todayMinutes = 0;
+                    }
+                }
+                
+                // Update checkbox
+                document.getElementById('autoAdvanceCheckbox').checked = this.userData.autoAdvance;
+            }
+
+            saveUserData() {
+                const data = {
+                    userData: this.userData,
+                    skills: {}
+                };
+                
+                this.skills.forEach(skill => {
+                    data.skills[skill.id] = skill.getData();
+                });
+                
+                localStorage.setItem('skillPracticeData', JSON.stringify(data));
+            }
+
+            toggleAutoAdvance() {
+                this.userData.autoAdvance = document.getElementById('autoAdvanceCheckbox').checked;
+                this.saveUserData();
+            }
+
+            resetAllData() {
+                if (confirm('Are you sure you want to reset all data? This cannot be undone.')) {
+                    localStorage.removeItem('skillPracticeData');
+                    location.reload();
+                }
+            }
+
+            updateUI() {
+                // Update stats
+                document.getElementById('todayTime').textContent = Math.floor(this.userData.todayMinutes);
+                document.getElementById('streak').textContent = this.userData.streak;
+                document.getElementById('totalTrials').textContent = this.userData.totalTrials;
+
+                // Update skill list
+                const skillList = document.getElementById('skillList');
+                skillList.innerHTML = '';
+                
+                this.skills.forEach(skill => {
+                    const skillData = skill.getData();
+                    const item = document.createElement('div');
+                    item.className = 'skill-item';
+                    item.innerHTML = `
+                        <div class="skill-info">
+                            <div class="skill-name">${skill.name}</div>
+                            <div class="skill-stats">
+                                Trials: ${skillData.totalTrials} | 
+                                Accuracy: ${skillData.totalTrials > 0 ? 
+                                    Math.round(skillData.correctTrials / skillData.totalTrials * 100) : 0}%
+                            </div>
+                        </div>
+                    `;
+                    skillList.appendChild(item);
+                });
+            }
+
+            chooseSkill() {
+                // Simple algorithm: choose skill that has been practiced least recently
+                // or has lowest proficiency relative to goal
+                
+                let bestSkill = this.skills[0];
+                let bestScore = -Infinity;
+                
+                this.skills.forEach(skill => {
+                    const data = skill.getData();
+                    const recencyScore = data.lastPracticed ? 
+                        (Date.now() - new Date(data.lastPracticed)) / (1000 * 60 * 60 * 24) : 999;
+                    const proficiencyGap = 1 - (data.totalTrials > 0 ? 
+                        data.correctTrials / data.totalTrials : 0);
+                    
+                    const score = recencyScore + proficiencyGap * 5;
+                    
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestSkill = skill;
+                    }
+                });
+                
+                return bestSkill;
+            }
+
+            startPractice() {
+                this.currentSkill = this.chooseSkill();
+                this.sessionStartTime = Date.now();
+                this.remainingSeconds = this.practiceTimeSeconds;
+                this.sessionData = {
+                    trials: 0,
+                    correct: 0,
+                    totalScore: 0
+                };
+                
+                document.getElementById('homeScreen').classList.remove('active');
+                document.getElementById('practiceScreen').classList.add('active');
+                document.getElementById('currentSkillName').textContent = this.currentSkill.name;
+                
+                this.updateSessionStats();
+                this.startTimer();
+                this.nextTrial();
+            }
+
+            startTimer() {
+                this.updateTimerDisplay();
+                this.timerInterval = setInterval(() => {
+                    this.remainingSeconds--;
+                    this.updateTimerDisplay();
+                    
+                    if (this.remainingSeconds <= 0) {
+                        this.endPractice();
+                    }
+                }, 1000);
+            }
+
+            updateTimerDisplay() {
+                const minutes = Math.floor(this.remainingSeconds / 60);
+                const seconds = this.remainingSeconds % 60;
+                document.getElementById('practiceTimer').textContent = 
+                    `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }
+
+            pausePractice() {
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                    alert('Practice paused. Click OK to resume.');
+                    this.startTimer();
+                }
+            }
+
+            endPractice() {
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                }
+                
+                // Update user data
+                const sessionMinutes = (Date.now() - this.sessionStartTime) / (1000 * 60);
+                this.userData.todayMinutes += sessionMinutes;
+                this.userData.totalTrials += this.sessionData.trials;
+                
+                const today = new Date().toDateString();
+                if (this.userData.lastPracticeDate !== today) {
+                    if (this.userData.lastPracticeDate) {
+                        const last = new Date(this.userData.lastPracticeDate);
+                        const now = new Date();
+                        const diffDays = Math.floor((now - last) / (1000 * 60 * 60 * 24));
+                        
+                        if (diffDays === 1) {
+                            this.userData.streak++;
+                        } else {
+                            this.userData.streak = 1;
+                        }
+                    } else {
+                        this.userData.streak = 1;
+                    }
+                    this.userData.lastPracticeDate = today;
+                }
+                
+                this.saveUserData();
+                
+                // Return to home
+                document.getElementById('practiceScreen').classList.remove('active');
+                document.getElementById('homeScreen').classList.add('active');
+                this.updateUI();
+                
+                alert(`Practice complete!\n\nTrials: ${this.sessionData.trials}\nCorrect: ${this.sessionData.correct}\nAccuracy: ${this.sessionData.trials > 0 ? Math.round(this.sessionData.correct / this.sessionData.trials * 100) : 0}%`);
+            }
+
+            nextTrial() {
+                // Clear any existing auto-advance timeout
+                if (this.autoAdvanceTimeout) {
+                    clearTimeout(this.autoAdvanceTimeout);
+                    this.autoAdvanceTimeout = null;
+                }
+                
+                // Remove any existing keyboard listener
+                if (this.advanceListener) {
+                    document.removeEventListener('keypress', this.advanceListener);
+                    this.advanceListener = null;
+                }
+                
+                document.getElementById('feedback').textContent = '';
+                document.getElementById('feedback').className = 'feedback';
+                document.getElementById('continueButton').classList.add('hidden');
+                
+                this.currentTrial = this.currentSkill.generateTrial();
+                document.getElementById('questionText').textContent = this.currentTrial.question;
+                
+                const inputArea = document.getElementById('inputArea');
+                inputArea.innerHTML = this.currentTrial.inputHTML;
+                
+                // Focus input
+                const input = inputArea.querySelector('input');
+                if (input) {
+                    input.focus();
+                    input.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            this.submitAnswer();
+                        }
+                    });
+                }
+            }
+
+            submitAnswer() {
+                const inputArea = document.getElementById('inputArea');
+                const input = inputArea.querySelector('input');
+                if (!input) return;
+                
+                const answer = input.value;
+                const result = this.currentSkill.checkAnswer(this.currentTrial, answer);
+                
+                this.sessionData.trials++;
+                this.sessionData.totalScore += result.score;
+                if (result.score === 1) {
+                    this.sessionData.correct++;
+                }
+                
+                this.currentSkill.recordTrial(result.score);
+                this.updateSessionStats();
+                
+                // Determine score for display
+                const score = result.score;
+                
+                // Show feedback - this is now completely skill-agnostic
+                const feedback = document.getElementById('feedback');
+                if (score === 1) {
+                    feedback.innerHTML = `Perfect!`;
+                    feedback.className = 'feedback correct';
+                } else if (score >= 0.5) {
+                    feedback.innerHTML = `Close! ${result.feedback}`;
+                    feedback.className = 'feedback partial';
+                } else {
+                    feedback.innerHTML = `${result.feedback}`;
+                    feedback.className = 'feedback incorrect';
+                }
+                
+                // Disable input
+                input.disabled = true;
+                
+                // Show continue button
+                document.getElementById('continueButton').classList.remove('hidden');
+                document.getElementById('continueButton').focus();
+                
+                // Set up keyboard listener for advancing
+                this.advanceListener = (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        document.removeEventListener('keypress', this.advanceListener);
+                        this.advanceListener = null;
+                        this.nextTrial();
+                    }
+                };
+                document.addEventListener('keypress', this.advanceListener);
+                
+                // Auto-advance on perfect score if enabled
+                if (this.userData.autoAdvance && score === 1) {
+                    this.autoAdvanceTimeout = setTimeout(() => {
+                        if (this.advanceListener) {
+                            document.removeEventListener('keypress', this.advanceListener);
+                            this.advanceListener = null;
+                        }
+                        this.nextTrial();
+                    }, 3000);
+                }
+            }
+
+            updateSessionStats() {
+                document.getElementById('sessionTrials').textContent = this.sessionData.trials;
+                document.getElementById('sessionCorrect').textContent = this.sessionData.correct;
+                document.getElementById('sessionAccuracy').textContent = 
+                    this.sessionData.trials > 0 ? 
+                    Math.round(this.sessionData.correct / this.sessionData.trials * 100) + '%' : '-';
+                document.getElementById('sessionAvgScore').textContent =
+                    this.sessionData.trials > 0 ?
+                    (this.sessionData.totalScore / this.sessionData.trials).toFixed(2) : '-';
+            }
+        }
+
+        // Base Skill Class
+        class Skill {
+            constructor(id, name) {
+                this.id = id;
+                this.name = name;
+                this.data = {
+                    totalTrials: 0,
+                    correctTrials: 0,
+                    lastPracticed: null,
+                    history: []
+                };
+            }
+
+            getData() {
+                return this.data;
+            }
+
+            loadData(data) {
+                this.data = data;
+            }
+
+            recordTrial(score) {
+                this.data.totalTrials++;
+                if (score === 1) {
+                    this.data.correctTrials++;
+                }
+                this.data.lastPracticed = new Date().toISOString();
+                this.data.history.push({
+                    timestamp: new Date().toISOString(),
+                    score: score
+                });
+            }
+
+            // To be implemented by subclasses
+            generateTrial() {
+                throw new Error('generateTrial must be implemented');
+            }
+
+            checkAnswer(trial, answer) {
+                throw new Error('checkAnswer must be implemented');
+            }
+        }
+
+        // Fahrenheit to Celsius Skill
+        class FahrenheitToCelsiusSkill extends Skill {
+            constructor() {
+                super('f-to-c', 'Fahrenheit to Celsius');
+            }
+
+            generateTrial() {
+                const fahrenheit = Math.floor(Math.random() * 180) - 40; // -40 to 140
+                return {
+                    question: `${fahrenheit}°F = ? °C`,
+                    inputHTML: '<input type="number" id="answerInput" placeholder="°C" step="0.1">',
+                    correctAnswer: ((fahrenheit - 32) * 5 / 9)
+                };
+            }
+
+            checkAnswer(trial, answer) {
+                const userAnswer = parseFloat(answer);
+                const correct = trial.correctAnswer;
+                const diff = Math.abs(userAnswer - correct);
+                
+                let score = 0;
+                if (diff === 0) {
+                    score = 1;
+                } else if (diff <= 0.5) {
+                    score = 0.9;
+                } else if (diff <= 1) {
+                    score = 0.7;
+                } else if (diff <= 2) {
+                    score = 0.5;
+                } else if (diff <= 5) {
+                    score = 0.3;
+                }
+                
+                return {
+                    score: score,
+                    feedback: `Correct answer: ${correct.toFixed(1)}°C (You said ${userAnswer.toFixed(1)}°C, off by ${diff.toFixed(1)}°)`
+                };
+            }
+        }
+
+        // Celsius to Fahrenheit Skill
+        class CelsiusToFahrenheitSkill extends Skill {
+            constructor() {
+                super('c-to-f', 'Celsius to Fahrenheit');
+            }
+
+            generateTrial() {
+                const celsius = Math.floor(Math.random() * 100) - 40; // -40 to 60
+                return {
+                    question: `${celsius}°C = ? °F`,
+                    inputHTML: '<input type="number" id="answerInput" placeholder="°F" step="0.1">',
+                    correctAnswer: (celsius * 9 / 5 + 32)
+                };
+            }
+
+            checkAnswer(trial, answer) {
+                const userAnswer = parseFloat(answer);
+                const correct = trial.correctAnswer;
+                const diff = Math.abs(userAnswer - correct);
+                
+                let score = 0;
+                if (diff === 0) {
+                    score = 1;
+                } else if (diff <= 1) {
+                    score = 0.9;
+                } else if (diff <= 2) {
+                    score = 0.7;
+                } else if (diff <= 4) {
+                    score = 0.5;
+                } else if (diff <= 10) {
+                    score = 0.3;
+                }
+                
+                return {
+                    score: score,
+                    feedback: `Correct answer: ${correct.toFixed(1)}°F (You said ${userAnswer.toFixed(1)}°F, off by ${diff.toFixed(1)}°)`
+                };
+            }
+        }
+
+        // Angle Estimation Skill
+        class AngleEstimationSkill extends Skill {
+            constructor() {
+                super('angle-estimation', 'Angle Estimation');
+            }
+
+            generateTrial() {
+                const angle = Math.floor(Math.random() * 180); // 0 to 180 degrees
+                const canvas = document.createElement('canvas');
+                canvas.width = 300;
+                canvas.height = 300;
+                const ctx = canvas.getContext('2d');
+                
+                // Draw angle
+                ctx.clearRect(0, 0, 300, 300);
+                ctx.beginPath();
+                ctx.moveTo(150, 150);
+                ctx.lineTo(250, 150);
+                ctx.strokeStyle = '#2c3e50';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                const radians = angle * Math.PI / 180;
+                ctx.beginPath();
+                ctx.moveTo(150, 150);
+                ctx.lineTo(150 + 100 * Math.cos(radians), 150 - 100 * Math.sin(radians));
+                ctx.strokeStyle = '#e74c3c';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                return {
+                    question: 'Estimate the angle in degrees:',
+                    inputHTML: canvas.outerHTML + '<br><input type="number" id="answerInput" placeholder="degrees" min="0" max="180">',
+                    correctAnswer: angle
+                };
+            }
+
+            checkAnswer(trial, answer) {
+                const userAnswer = parseFloat(answer);
+                const correct = trial.correctAnswer;
+                const diff = Math.abs(userAnswer - correct);
+                
+                let score = 0;
+                if (diff === 0) {
+                    score = 1;
+                } else if (diff <= 2) {
+                    score = 0.95;
+                } else if (diff <= 5) {
+                    score = 0.85;
+                } else if (diff <= 10) {
+                    score = 0.7;
+                } else if (diff <= 15) {
+                    score = 0.5;
+                } else if (diff <= 30) {
+                    score = 0.3;
+                }
+                
+                return {
+                    score: score,
+                    feedback: `Correct answer: ${correct}° (You said ${userAnswer}°, off by ${diff}°)`
+                };
+            }
+        }
+
+        // Initialize app
+        const app = new SkillPracticeApp();
+    </script>
+</body>
+</html>
