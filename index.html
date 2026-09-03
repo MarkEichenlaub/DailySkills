@@ -44,6 +44,32 @@
             margin-bottom: 0.75rem;
         }
 
+        /* Hide the header while actively practicing to reclaim vertical space -
+           the timer/skill-name bar inside the practice card already orients you. */
+        body:has(#practiceScreen.active) header {
+            display: none;
+        }
+
+        #practiceScreen .card {
+            padding: 0.75rem 1rem;
+        }
+
+        #practiceScreen .timer-section {
+            margin: 0 0 0.5rem 0;
+            padding: 0.4rem 0.5rem;
+        }
+
+        #practiceScreen .practice-area {
+            min-height: unset;
+            gap: 0.4rem;
+            padding: 0.4rem 0;
+        }
+
+        #practiceScreen .question {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+
         header h1 {
             font-size: 1.4rem;
             margin: 0;
@@ -210,15 +236,15 @@
 
         .kb-preview {
             font-family: 'Consolas', 'Courier New', monospace;
-            font-size: 1rem;
+            font-size: 0.95rem;
             background: #f8f9fa;
             border: 1px solid #ddd;
             border-radius: 4px;
-            padding: 0.75rem;
+            padding: 0.4rem 0.6rem;
             white-space: pre;
             overflow-x: auto;
-            margin: 0 0 0.5rem 0;
-            line-height: 1.6;
+            margin: 0 0 0.4rem 0;
+            line-height: 1.35;
             text-align: left;
         }
 
@@ -252,14 +278,14 @@
 
         .kb-textarea {
             font-family: 'Consolas', 'Courier New', monospace;
-            font-size: 1rem;
+            font-size: 0.95rem;
             width: 100%;
             max-width: 520px;
-            padding: 0.5rem;
+            padding: 0.4rem 0.6rem;
             border: 2px solid #ddd;
             border-radius: 4px;
             resize: none;
-            line-height: 1.6;
+            line-height: 1.35;
         }
 
         .kb-textarea:focus {
@@ -293,6 +319,15 @@
         .kb-choice:disabled {
             cursor: default;
             opacity: 0.85;
+        }
+
+        .kb-flash-wrong {
+            animation: kbFlashWrong 0.4s ease;
+        }
+
+        @keyframes kbFlashWrong {
+            0% { background: #f8d7da; border-color: #dc3545; }
+            100% { background: white; }
         }
 
         .skill-list {
@@ -1332,6 +1367,12 @@
         // global remap and can't be safely practiced live in a browser —
         // those are quick multiple-choice recall trials instead.
 
+        function knFlashWrong(el) {
+            el.classList.remove('kb-flash-wrong');
+            void el.offsetWidth; // restart the animation if it's already mid-flash
+            el.classList.add('kb-flash-wrong');
+        }
+
         function knEscHtml(s) {
             return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
@@ -1634,22 +1675,43 @@
             onTrialRendered(trial, inputArea, app) {
                 const move = trial._move;
                 const sample = trial._sample;
+                const MODIFIER_KEYS = new Set(['Control', 'Alt', 'Shift', 'Meta', 'AltGraph', 'OS']);
 
                 if (move.driver === 'quiz') {
                     const buttons = inputArea.querySelectorAll('.kb-choice');
+                    let graded = false;
+
+                    const grade = (isCorrect, feedback) => {
+                        if (graded) return;
+                        graded = true;
+                        document.removeEventListener('keydown', bailListener);
+                        buttons.forEach(b => b.disabled = true);
+                        trial._liveResult = { correct: isCorrect, feedback };
+                        app.submitAnswer();
+                    };
+                    const bail = () => {
+                        if (graded) return;
+                        grade(false, `It's ${move.keysDisplay}. ${move.trapNote || ''}`);
+                        app.nextTrial();
+                    };
+                    const bailListener = (e) => {
+                        if (!graded && e.key === 'Enter') {
+                            e.preventDefault();
+                            bail();
+                        }
+                    };
+                    document.addEventListener('keydown', bailListener);
+
                     buttons.forEach(btn => {
                         btn.addEventListener('click', () => {
-                            buttons.forEach(b => b.disabled = true);
+                            if (graded) return;
                             const chosen = btn.getAttribute('data-choice');
-                            const isCorrect = chosen === move.correctChoice;
-                            btn.style.borderColor = isCorrect ? '#28a745' : '#dc3545';
-                            trial._liveResult = {
-                                correct: isCorrect,
-                                feedback: isCorrect
-                                    ? `${move.keysDisplay}. ${move.trapNote || ''}`
-                                    : `It's ${move.keysDisplay}. ${move.trapNote || ''}`,
-                            };
-                            app.submitAnswer();
+                            if (chosen === move.correctChoice) {
+                                btn.style.borderColor = '#28a745';
+                                grade(true, `${move.keysDisplay}. ${move.trapNote || ''}`);
+                            } else {
+                                knFlashWrong(btn);
+                            }
                         });
                     });
                     return;
@@ -1676,20 +1738,49 @@
                     };
                     app.submitAnswer();
                 };
+                const resetForRetry = () => {
+                    knFlashWrong(textarea);
+                    textarea.value = sample.text;
+                    textarea.setSelectionRange(sample.pos, sample.pos);
+                };
+                const bail = () => {
+                    if (graded) return;
+                    grade(false);
+                    app.nextTrial();
+                };
 
                 if (move.driver === 'manual') {
                     textarea.addEventListener('keydown', (e) => {
                         if (graded) return;
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            bail();
+                            return;
+                        }
+                        // A chord builds up over several keydown events (e.g. Alt
+                        // down, then Shift down, then G down) - only the final,
+                        // non-modifier keydown represents a complete attempt.
+                        // Judging on the modifier-only keydowns in between would
+                        // call it wrong before the user finished pressing it.
+                        if (MODIFIER_KEYS.has(e.key)) return;
                         const c = move.chord;
                         const match = !!c.ctrl === e.ctrlKey && !!c.alt === e.altKey && !!c.shift === e.shiftKey
                             && e.key.toLowerCase() === c.key.toLowerCase();
-                        if (match) e.preventDefault();
-                        grade(match);
+                        if (match) {
+                            e.preventDefault();
+                            grade(true);
+                        } else {
+                            setTimeout(resetForRetry, 0);
+                        }
                     });
                 } else {
                     let debounceTimer = null;
                     textarea.addEventListener('keydown', (e) => {
-                        if (!graded && e.key === 'Enter') e.preventDefault();
+                        if (graded) return;
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            bail();
+                        }
                     });
                     textarea.addEventListener('keyup', (e) => {
                         // The Enter that just advanced this trial moves focus to
@@ -1704,7 +1795,11 @@
                             const ok = textarea.selectionStart === finalState.start
                                 && textarea.selectionEnd === finalState.end
                                 && textarea.value === finalState.value;
-                            grade(ok);
+                            if (ok) {
+                                grade(true);
+                            } else {
+                                resetForRetry();
+                            }
                         }, 220);
                     });
                 }
