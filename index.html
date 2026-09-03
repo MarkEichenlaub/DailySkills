@@ -590,11 +590,7 @@
 
             <div class="card">
                 <h2>Settings</h2>
-                <label style="display: block; margin: 0.5rem 0;">
-                    <input type="checkbox" id="autoAdvanceCheckbox" onchange="app.toggleAutoAdvance()">
-                    Auto-advance on perfect answers (3 second delay)
-                </label>
-                <div style="margin-top: 1rem;">
+                <div>
                     <button onclick="app.resetAllData()" class="secondary">Reset All Data</button>
                 </div>
             </div>
@@ -689,11 +685,9 @@
                     totalTrials: 0,
                     streak: 0,
                     lastPracticeDate: null,
-                    todayMinutes: 0,
-                    autoAdvance: true
+                    todayMinutes: 0
                 };
                 this.advanceListener = null;
-                this.autoAdvanceTimeout = null;
                 this.firebaseUser = null;
 
                 this.loadUserData();
@@ -815,9 +809,6 @@
                         this.userData.todayMinutes = 0;
                     }
                 }
-
-                // Update checkbox
-                document.getElementById('autoAdvanceCheckbox').checked = this.userData.autoAdvance;
             }
 
             getDataSnapshot() {
@@ -880,7 +871,6 @@
                             .collection('data').doc('progress')
                             .set(merged);
 
-                        document.getElementById('autoAdvanceCheckbox').checked = this.userData.autoAdvance;
                         this.updateUI();
                         this.setSyncStatus('synced');
                     } else {
@@ -898,11 +888,6 @@
                 const localTrials = (local.userData && local.userData.totalTrials) || 0;
                 const cloudTrials = (cloud.userData && cloud.userData.totalTrials) || 0;
                 return cloudTrials >= localTrials ? cloud : local;
-            }
-
-            toggleAutoAdvance() {
-                this.userData.autoAdvance = document.getElementById('autoAdvanceCheckbox').checked;
-                this.saveUserData();
             }
 
             async resetAllData() {
@@ -1064,12 +1049,6 @@
             }
 
             nextTrial() {
-                // Clear any existing auto-advance timeout
-                if (this.autoAdvanceTimeout) {
-                    clearTimeout(this.autoAdvanceTimeout);
-                    this.autoAdvanceTimeout = null;
-                }
-                
                 // Remove any existing keyboard listener
                 if (this.advanceListener) {
                     document.removeEventListener('keypress', this.advanceListener);
@@ -1155,17 +1134,6 @@
                     }
                 };
                 document.addEventListener('keypress', this.advanceListener);
-
-                // Auto-advance on correct answers if enabled
-                if (this.userData.autoAdvance && result.correct) {
-                    this.autoAdvanceTimeout = setTimeout(() => {
-                        if (this.advanceListener) {
-                            document.removeEventListener('keypress', this.advanceListener);
-                            this.advanceListener = null;
-                        }
-                        this.nextTrial();
-                    }, 3000);
-                }
             }
 
             updateSessionStats() {
