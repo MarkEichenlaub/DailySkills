@@ -549,6 +549,7 @@
 
             <div class="card">
                 <h2>Skills</h2>
+                <p style="color:#7f8c8d; font-size:0.85rem; margin:-0.25rem 0 0.5rem;">Click a skill to practice just that one, or use "Start Practice" above to let it pick for you.</p>
                 <div id="skillList" class="skill-list"></div>
             </div>
 
@@ -692,15 +693,28 @@
                         this.setSyncStatus('');
                     }
                 });
+
+                // signInWithPopup is unreliable here - a browser's built-in popup
+                // blocker (or Brave's Shields) can silently swallow the popup with
+                // no visible error, which is exactly what looked like "nothing
+                // happens". signInWithRedirect avoids popups entirely: the whole
+                // page navigates to Google and back. This picks up the result of
+                // that round trip.
+                auth.getRedirectResult().catch((e) => {
+                    console.error('Sign-in redirect error:', e);
+                    this.setSyncStatus('sign-in failed: ' + (e.code || e.message));
+                });
             }
 
             async signIn() {
                 if (!auth) return;
                 try {
                     const provider = new firebase.auth.GoogleAuthProvider();
-                    await auth.signInWithPopup(provider);
+                    this.setSyncStatus('redirecting to Google...');
+                    await auth.signInWithRedirect(provider);
                 } catch (e) {
                     console.error('Sign-in error:', e);
+                    this.setSyncStatus('sign-in failed: ' + (e.code || e.message));
                 }
             }
 
@@ -890,12 +904,13 @@
                         <div class="skill-info">
                             <div class="skill-name">${skill.name}</div>
                             <div class="skill-stats">
-                                Trials: ${skillData.totalTrials} | 
-                                Accuracy: ${skillData.totalTrials > 0 ? 
+                                Trials: ${skillData.totalTrials} |
+                                Accuracy: ${skillData.totalTrials > 0 ?
                                     Math.round(skillData.correctTrials / skillData.totalTrials * 100) : 0}%
                             </div>
                         </div>
                     `;
+                    item.addEventListener('click', () => this.startPractice(skill.id));
                     skillList.appendChild(item);
                 });
             }
@@ -925,8 +940,10 @@
                 return bestSkill;
             }
 
-            startPractice() {
-                this.currentSkill = this.chooseSkill();
+            startPractice(skillId) {
+                this.currentSkill = skillId
+                    ? this.skills.find(s => s.id === skillId) || this.chooseSkill()
+                    : this.chooseSkill();
                 this.sessionStartTime = Date.now();
                 this.remainingSeconds = this.practiceTimeSeconds;
                 this.sessionData = {
