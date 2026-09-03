@@ -158,7 +158,8 @@
         }
 
         .feedback {
-            font-size: 1.1rem;
+            font-size: 1.3rem;
+            font-weight: 600;
             padding: 0.75rem;
             border-radius: 4px;
             margin: 0.5rem 0;
@@ -169,19 +170,129 @@
         .feedback.correct {
             background: #d4edda;
             color: #155724;
-            border: 1px solid #c3e6cb;
+            border: 2px solid #28a745;
+            animation: feedbackPop 0.25s ease;
         }
 
         .feedback.incorrect {
             background: #f8d7da;
             color: #721c24;
-            border: 1px solid #f5c6cb;
+            border: 2px solid #dc3545;
+            animation: feedbackPop 0.25s ease;
         }
 
         .feedback.partial {
             background: #fff3cd;
             color: #856404;
             border: 1px solid #ffeeba;
+        }
+
+        @keyframes feedbackPop {
+            from { transform: scale(0.94); opacity: 0.4; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .kb-badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.15rem 0.6rem;
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            background: #d6eaf8;
+            color: #1a5276;
+        }
+
+        .kb-badge.eigennode {
+            background: #e8daef;
+            color: #6c3483;
+        }
+
+        .kb-preview {
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 1rem;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 0.75rem;
+            white-space: pre;
+            overflow-x: auto;
+            margin: 0 0 0.5rem 0;
+            line-height: 1.6;
+            text-align: left;
+        }
+
+        .kb-caret {
+            color: #2c3e50;
+            font-weight: bold;
+            animation: kbBlink 1s step-start infinite;
+        }
+
+        .kb-target {
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        @keyframes kbBlink {
+            50% { opacity: 0; }
+        }
+
+        .kb-del {
+            background: #f8d7da;
+            color: #721c24;
+            text-decoration: line-through;
+            border-radius: 2px;
+        }
+
+        .kb-sel {
+            background: #cfe2ff;
+            color: #084298;
+            border-radius: 2px;
+        }
+
+        .kb-textarea {
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 1rem;
+            width: 100%;
+            max-width: 520px;
+            padding: 0.5rem;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            resize: none;
+            line-height: 1.6;
+        }
+
+        .kb-textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .kb-choices {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-top: 0.5rem;
+        }
+
+        .kb-choice {
+            background: #ecf0f1;
+            color: #2c3e50;
+            border: 2px solid #ddd;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.95rem;
+        }
+
+        .kb-choice:hover:not(:disabled) {
+            background: #d5dbdb;
+        }
+
+        .kb-choice:disabled {
+            cursor: default;
+            opacity: 0.85;
         }
 
         .skill-list {
@@ -611,7 +722,8 @@
                 this.skills = [
                     new FahrenheitToCelsiusSkill(),
                     new CelsiusToFahrenheitSkill(),
-                    new AngleEstimationSkill()
+                    new AngleEstimationSkill(),
+                    new KeyboardShortcutsSkill()
                 ];
             }
 
@@ -918,16 +1030,26 @@
                 
                 this.currentTrial = this.currentSkill.generateTrial();
                 document.getElementById('questionText').textContent = this.currentTrial.question;
-                
+
                 const inputArea = document.getElementById('inputArea');
                 inputArea.innerHTML = this.currentTrial.inputHTML;
-                
+
+                if (this.currentSkill.onTrialRendered) {
+                    this.currentSkill.onTrialRendered(this.currentTrial, inputArea, this);
+                }
+
                 // Focus input
-                const input = inputArea.querySelector('input');
+                const input = inputArea.querySelector('input, textarea');
                 if (input) {
                     input.focus();
                     input.addEventListener('keypress', (e) => {
                         if (e.key === 'Enter') {
+                            // Stop this Enter keypress from also bubbling to the
+                            // document-level "advance to next trial" listener that
+                            // submitAnswer() is about to attach - otherwise the
+                            // same keystroke both submits AND advances, and the
+                            // feedback banner never has a chance to be seen.
+                            e.stopPropagation();
                             this.submitAnswer();
                         }
                     });
@@ -936,44 +1058,41 @@
 
             submitAnswer() {
                 const inputArea = document.getElementById('inputArea');
-                const input = inputArea.querySelector('input');
-                if (!input) return;
-                
-                const answer = input.value;
+                const input = inputArea.querySelector('input, textarea');
+                // Number/text inputs shouldn't submit empty - skills that drive
+                // submission themselves (textarea/quiz-based) never hit this case.
+                if (input && input.tagName === 'INPUT' && input.value.trim() === '') return;
+
+                const answer = input ? input.value : '';
                 const result = this.currentSkill.checkAnswer(this.currentTrial, answer);
-                
+
                 this.sessionData.trials++;
                 this.sessionData.totalScore += result.score;
-                if (result.score === 1) {
+                if (result.correct) {
                     this.sessionData.correct++;
                 }
-                
+
                 this.currentSkill.recordTrial(result.score);
                 this.updateSessionStats();
-                
-                // Determine score for display
-                const score = result.score;
-                
-                // Show feedback - this is now completely skill-agnostic
+
+                // Show feedback - clear, immediate, and skill-agnostic: green means
+                // right, red means wrong, and the correct answer is always shown.
                 const feedback = document.getElementById('feedback');
-                if (score === 1) {
-                    feedback.innerHTML = `Perfect!`;
+                if (result.correct) {
+                    feedback.innerHTML = `✓ Correct! ${result.feedback}`;
                     feedback.className = 'feedback correct';
-                } else if (score >= 0.5) {
-                    feedback.innerHTML = `Close! ${result.feedback}`;
-                    feedback.className = 'feedback partial';
                 } else {
-                    feedback.innerHTML = `${result.feedback}`;
+                    feedback.innerHTML = `✗ ${result.feedback}`;
                     feedback.className = 'feedback incorrect';
                 }
-                
+
                 // Disable input
-                input.disabled = true;
-                
+                if (input) input.disabled = true;
+
                 // Show continue button
                 document.getElementById('continueButton').classList.remove('hidden');
                 document.getElementById('continueButton').focus();
-                
+
                 // Set up keyboard listener for advancing
                 this.advanceListener = (e) => {
                     if (e.key === 'Enter') {
@@ -984,9 +1103,9 @@
                     }
                 };
                 document.addEventListener('keypress', this.advanceListener);
-                
-                // Auto-advance on perfect score if enabled
-                if (this.userData.autoAdvance && score === 1) {
+
+                // Auto-advance on correct answers if enabled
+                if (this.userData.autoAdvance && result.correct) {
                     this.autoAdvanceTimeout = setTimeout(() => {
                         if (this.advanceListener) {
                             document.removeEventListener('keypress', this.advanceListener);
@@ -1071,24 +1190,18 @@
                 const userAnswer = parseFloat(answer);
                 const correct = trial.correctAnswer;
                 const diff = Math.abs(userAnswer - correct);
-                
+                const isCorrect = diff <= 1; // within 1°C counts as correct
+
                 let score = 0;
-                if (diff === 0) {
-                    score = 1;
-                } else if (diff <= 0.5) {
-                    score = 0.9;
-                } else if (diff <= 1) {
-                    score = 0.7;
-                } else if (diff <= 2) {
-                    score = 0.5;
-                } else if (diff <= 5) {
-                    score = 0.3;
-                }
-                
-                return {
-                    score: score,
-                    feedback: `Correct answer: ${correct.toFixed(1)}°C (You said ${userAnswer.toFixed(1)}°C, off by ${diff.toFixed(1)}°)`
-                };
+                if (diff <= 1) score = 1;
+                else if (diff <= 2) score = 0.6;
+                else if (diff <= 5) score = 0.3;
+
+                const feedback = isCorrect
+                    ? `${correct.toFixed(1)}°C (you said ${userAnswer.toFixed(1)}°C, off by ${diff.toFixed(1)}° — within the 1° margin)`
+                    : `Off by ${diff.toFixed(1)}°. Correct answer: ${correct.toFixed(1)}°C (you said ${userAnswer.toFixed(1)}°C)`;
+
+                return { score, correct: isCorrect, feedback };
             }
         }
 
@@ -1111,24 +1224,18 @@
                 const userAnswer = parseFloat(answer);
                 const correct = trial.correctAnswer;
                 const diff = Math.abs(userAnswer - correct);
-                
+                const isCorrect = diff <= 2; // within 2°F counts as correct
+
                 let score = 0;
-                if (diff === 0) {
-                    score = 1;
-                } else if (diff <= 1) {
-                    score = 0.9;
-                } else if (diff <= 2) {
-                    score = 0.7;
-                } else if (diff <= 4) {
-                    score = 0.5;
-                } else if (diff <= 10) {
-                    score = 0.3;
-                }
-                
-                return {
-                    score: score,
-                    feedback: `Correct answer: ${correct.toFixed(1)}°F (You said ${userAnswer.toFixed(1)}°F, off by ${diff.toFixed(1)}°)`
-                };
+                if (diff <= 2) score = 1;
+                else if (diff <= 4) score = 0.6;
+                else if (diff <= 10) score = 0.3;
+
+                const feedback = isCorrect
+                    ? `${correct.toFixed(1)}°F (you said ${userAnswer.toFixed(1)}°F, off by ${diff.toFixed(1)}° — within the 2° margin)`
+                    : `Off by ${diff.toFixed(1)}°. Correct answer: ${correct.toFixed(1)}°F (you said ${userAnswer.toFixed(1)}°F)`;
+
+                return { score, correct: isCorrect, feedback };
             }
         }
 
@@ -1173,26 +1280,416 @@
                 const userAnswer = parseFloat(answer);
                 const correct = trial.correctAnswer;
                 const diff = Math.abs(userAnswer - correct);
-                
+                const isCorrect = diff <= 5; // within 5° counts as correct
+
                 let score = 0;
-                if (diff === 0) {
-                    score = 1;
-                } else if (diff <= 2) {
-                    score = 0.95;
-                } else if (diff <= 5) {
-                    score = 0.85;
-                } else if (diff <= 10) {
-                    score = 0.7;
-                } else if (diff <= 15) {
-                    score = 0.5;
-                } else if (diff <= 30) {
-                    score = 0.3;
+                if (diff <= 5) score = 1;
+                else if (diff <= 10) score = 0.6;
+                else if (diff <= 20) score = 0.3;
+
+                const feedback = isCorrect
+                    ? `${correct}° (you said ${userAnswer}°, off by ${diff}° — within the 5° margin)`
+                    : `Off by ${diff}°. Correct answer: ${correct}° (you said ${userAnswer}°)`;
+
+                return { score, correct: isCorrect, feedback };
+            }
+        }
+
+        // ============================================================
+        // Keyboard Shortcuts Skill — text-navigation muscle memory
+        // ============================================================
+        // Trains Mark's actual global AutoHotkey text-navigation/editing
+        // remaps (default.ahk) plus EigenNode's own node-level overrides,
+        // rather than generic OS shortcuts.
+        //
+        // Two ways a trial is graded:
+        //  - "native": the real chord (e.g. Ctrl+H) is intercepted by AHK
+        //    and turned into a plain browser key (e.g. Left), which the
+        //    textarea handles natively. We just compare the resulting
+        //    selection/value to the expected outcome.
+        //  - "manual": EigenNode-only chords (Alt+G, etc.) that AHK does
+        //    NOT remap outside EigenNode, so the browser sees the raw
+        //    chord. We match it ourselves and apply the transform, since
+        //    there's no real "node" here to do it natively.
+        // A few EigenNode chords (like Ctrl+Alt+;) collide with an AHK
+        // global remap and can't be safely practiced live in a browser —
+        // those are quick multiple-choice recall trials instead.
+
+        function knEscHtml(s) {
+            return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function knSegments(text) {
+            const seg = new Intl.Segmenter(undefined, { granularity: 'word' });
+            const out = [];
+            let idx = 0;
+            for (const s of seg.segment(text)) {
+                out.push({ start: idx, end: idx + s.segment.length, isWordLike: s.isWordLike });
+                idx += s.segment.length;
+            }
+            return out;
+        }
+
+        function knWordForward(text, pos) {
+            for (const s of knSegments(text)) {
+                if (s.isWordLike && s.start > pos) return s.start;
+            }
+            return text.length;
+        }
+
+        function knWordBack(text, pos) {
+            const words = knSegments(text).filter(s => s.isWordLike && s.start < pos);
+            return words.length ? words[words.length - 1].start : 0;
+        }
+
+        function knLineBounds(text, pos) {
+            const start = text.lastIndexOf('\n', pos - 1) + 1;
+            let end = text.indexOf('\n', pos);
+            if (end === -1) end = text.length;
+            return { start, end };
+        }
+
+        function knMoveLines(text, pos, delta) {
+            const lines = text.split('\n');
+            let idx = 0, acc = 0;
+            for (; idx < lines.length; idx++) {
+                if (acc + lines[idx].length >= pos) break;
+                acc += lines[idx].length + 1;
+            }
+            const col = pos - acc;
+            const targetIdx = Math.max(0, Math.min(lines.length - 1, idx + delta));
+            let targetStart = 0;
+            for (let i = 0; i < targetIdx; i++) targetStart += lines[i].length + 1;
+            return targetStart + Math.min(col, lines[targetIdx].length);
+        }
+
+        // highlight: {type:'move', to} | {type:'select', from, to} | {type:'delete', from, to}
+        function knRenderPreview(text, pos, highlight) {
+            if (!highlight || highlight.type === 'move') {
+                const to = highlight ? highlight.to : pos;
+                const points = [...new Set([pos, to])].sort((a, b) => a - b);
+                let html = '';
+                let last = 0;
+                for (const p of points) {
+                    html += knEscHtml(text.slice(last, p));
+                    if (p === pos) html += '<span class="kb-caret" title="cursor">┃</span>';
+                    if (p === to && to !== pos) html += '<span class="kb-target" title="target">┆</span>';
+                    last = p;
                 }
-                
+                html += knEscHtml(text.slice(last));
+                return html;
+            }
+            const from = Math.min(highlight.from, highlight.to);
+            const to = Math.max(highlight.from, highlight.to);
+            const cls = highlight.type === 'delete' ? 'kb-del' : 'kb-sel';
+            let html = knEscHtml(text.slice(0, from));
+            if (pos <= from) html += '<span class="kb-caret" title="cursor">┃</span>';
+            html += `<span class="${cls}">${knEscHtml(text.slice(from, to)) || '&nbsp;'}</span>`;
+            if (pos >= to) html += '<span class="kb-caret" title="cursor">┃</span>';
+            html += knEscHtml(text.slice(to));
+            return html;
+        }
+
+        const KN_A = 'the quick brown fox jumps over the lazy dog';
+        const KN_B = 'close the loop before you ship the fix';
+        const KN_D = 'first line of text\nsecond line here\nthird line now\nfourth one too\nfifth line goes\nsixth and last';
+        const KN_E = 'alpha bravo\ncharlie delta\necho foxtrot\ngolf hotel';
+
+        const KB_MOVES = [
+            {
+                id: 'charLeft', context: 'global', driver: 'native', highlightType: 'move',
+                keysDisplay: 'Ctrl+H', instruction: 'Move the cursor one character to the left.',
+                sample: { text: KN_A, pos: KN_A.indexOf('jumps') },
+                compute(text, pos) { const t = pos - 1; return { start: t, end: t, value: text }; },
+            },
+            {
+                id: 'charRight', context: 'global', driver: 'native', highlightType: 'move',
+                keysDisplay: 'Ctrl+L', instruction: 'Move the cursor one character to the right.',
+                sample: { text: KN_A, pos: KN_A.indexOf('jumps') },
+                compute(text, pos) { const t = pos + 1; return { start: t, end: t, value: text }; },
+            },
+            {
+                id: 'wordLeft', context: 'global', driver: 'native', highlightType: 'move',
+                keysDisplay: 'Ctrl+Shift+H', instruction: 'Move the cursor back one word.',
+                sample: { text: KN_A, pos: KN_A.indexOf('jumps') + 3 },
+                compute(text, pos) { const t = knWordBack(text, pos); return { start: t, end: t, value: text }; },
+            },
+            {
+                id: 'wordRight', context: 'global', driver: 'native', highlightType: 'move',
+                keysDisplay: 'Ctrl+Shift+L', instruction: 'Move the cursor forward one word.',
+                sample: { text: KN_A, pos: KN_A.indexOf('jumps') },
+                compute(text, pos) { const t = knWordForward(text, pos); return { start: t, end: t, value: text }; },
+            },
+            {
+                id: 'home', context: 'global', driver: 'native', highlightType: 'move',
+                keysDisplay: 'Alt+H', instruction: 'Move the cursor to the beginning of the line.',
+                sample: { text: KN_A, pos: KN_A.indexOf('jumps') },
+                compute(text, pos) { const t = knLineBounds(text, pos).start; return { start: t, end: t, value: text }; },
+            },
+            {
+                id: 'end', context: 'global', driver: 'native', highlightType: 'move',
+                keysDisplay: 'Alt+L', instruction: 'Move the cursor to the end of the line.',
+                sample: { text: KN_A, pos: KN_A.indexOf('jumps') },
+                compute(text, pos) { const t = knLineBounds(text, pos).end; return { start: t, end: t, value: text }; },
+            },
+            {
+                id: 'selHome', context: 'global', driver: 'native', highlightType: 'select',
+                keysDisplay: 'Shift+Win+H', instruction: 'Highlight from the cursor to the beginning of the line.',
+                sample: { text: KN_A, pos: KN_A.indexOf('jumps') },
+                compute(text, pos) { const t = knLineBounds(text, pos).start; return { start: Math.min(pos, t), end: Math.max(pos, t), value: text }; },
+            },
+            {
+                id: 'selEnd', context: 'global', driver: 'native', highlightType: 'select',
+                keysDisplay: 'Shift+Win+L', instruction: 'Highlight from the cursor to the end of the line.',
+                sample: { text: KN_A, pos: KN_A.indexOf('jumps') },
+                compute(text, pos) { const t = knLineBounds(text, pos).end; return { start: Math.min(pos, t), end: Math.max(pos, t), value: text }; },
+            },
+            {
+                id: 'lineDown', context: 'global', driver: 'native', highlightType: 'move',
+                keysDisplay: 'Ctrl+J', instruction: 'Move the cursor down one line, keeping the same column.',
+                sample: { text: KN_E, pos: KN_E.indexOf('bravo') + 1 },
+                compute(text, pos) { const t = knMoveLines(text, pos, 1); return { start: t, end: t, value: text }; },
+            },
+            {
+                id: 'lineUp', context: 'global', driver: 'native', highlightType: 'move',
+                keysDisplay: 'Ctrl+K', instruction: 'Move the cursor up one line, keeping the same column.',
+                sample: { text: KN_E, pos: KN_E.indexOf('foxtrot') + 2 },
+                compute(text, pos) { const t = knMoveLines(text, pos, -1); return { start: t, end: t, value: text }; },
+            },
+            {
+                id: 'selLineDown', context: 'global', driver: 'native', highlightType: 'select',
+                keysDisplay: 'Ctrl+Shift+J', instruction: 'Highlight from the cursor down one line.',
+                sample: { text: KN_E, pos: KN_E.indexOf('bravo') },
+                compute(text, pos) { const t = knMoveLines(text, pos, 1); return { start: Math.min(pos, t), end: Math.max(pos, t), value: text }; },
+            },
+            {
+                id: 'selLineUp', context: 'global', driver: 'native', highlightType: 'select',
+                keysDisplay: 'Ctrl+Shift+K', instruction: 'Highlight from the cursor up one line.',
+                sample: { text: KN_E, pos: KN_E.indexOf('foxtrot') },
+                compute(text, pos) { const t = knMoveLines(text, pos, -1); return { start: Math.min(pos, t), end: Math.max(pos, t), value: text }; },
+            },
+            {
+                id: 'down5', context: 'global', driver: 'native', highlightType: 'move',
+                keysDisplay: 'Ctrl+Win+J', instruction: 'Move the cursor down 5 lines.',
+                sample: { text: KN_D, pos: KN_D.indexOf('first') + 2 },
+                compute(text, pos) { const t = knMoveLines(text, pos, 5); return { start: t, end: t, value: text }; },
+            },
+            {
+                id: 'up5', context: 'global', driver: 'native', highlightType: 'move',
+                keysDisplay: 'Ctrl+Win+K', instruction: 'Move the cursor up 5 lines.',
+                sample: { text: KN_D, pos: KN_D.indexOf('last') },
+                compute(text, pos) { const t = knMoveLines(text, pos, -5); return { start: t, end: t, value: text }; },
+            },
+            {
+                id: 'delChar', context: 'global', driver: 'native', highlightType: 'delete',
+                keysDisplay: 'Ctrl+;', instruction: 'Delete the character right after the cursor.',
+                sample: { text: KN_A, pos: KN_A.indexOf('jumps') },
+                compute(text, pos) {
+                    return { start: pos, end: pos, value: text.slice(0, pos) + text.slice(pos + 1), delFrom: pos, delTo: pos + 1 };
+                },
+            },
+            {
+                id: 'delWord', context: 'global', driver: 'native', highlightType: 'delete',
+                keysDisplay: 'Ctrl+Shift+;', instruction: 'Delete from the cursor to the start of the next word.',
+                sample: { text: KN_B, pos: KN_B.indexOf('before') },
+                compute(text, pos) {
+                    const t = knWordForward(text, pos);
+                    return { start: pos, end: pos, value: text.slice(0, pos) + text.slice(t), delFrom: pos, delTo: t };
+                },
+            },
+            {
+                id: 'delToEOL', context: 'global', driver: 'native', highlightType: 'delete',
+                keysDisplay: 'Ctrl+Alt+;', instruction: 'Delete from the cursor to the end of the line.',
+                trapNote: "Same combo deletes the whole node when EigenNode is focused — this is the \"everywhere else\" meaning.",
+                sample: { text: KN_A, pos: KN_A.indexOf('jumps') },
+                compute(text, pos) {
+                    const le = knLineBounds(text, pos).end;
+                    return { start: pos, end: pos, value: text.slice(0, pos) + text.slice(le), delFrom: pos, delTo: le };
+                },
+            },
+            {
+                id: 'selToEOL2', context: 'global', driver: 'native', highlightType: 'select',
+                keysDisplay: "Ctrl+Alt+'", instruction: 'Highlight from the cursor to the end of the line (a second shortcut for the same result as Shift+Win+L).',
+                sample: { text: KN_A, pos: KN_A.indexOf('jumps') },
+                compute(text, pos) { const t = knLineBounds(text, pos).end; return { start: Math.min(pos, t), end: Math.max(pos, t), value: text }; },
+            },
+            {
+                id: 'docStart', context: 'global', driver: 'native', highlightType: 'move',
+                keysDisplay: 'Ctrl+Shift+U', instruction: 'Jump to the very beginning of the whole text.',
+                sample: { text: KN_D, pos: KN_D.indexOf('third') + 3 },
+                compute(text) { return { start: 0, end: 0, value: text }; },
+            },
+            {
+                id: 'enGotoNodeStart', context: 'eigennode', driver: 'manual', highlightType: 'move',
+                keysDisplay: 'Alt+G', instruction: 'In EigenNode: move the cursor to the very beginning of this node (not just this line).',
+                trapNote: 'Different from the global Alt+H, which only goes to the start of the current line.',
+                sample: { text: KN_D, pos: KN_D.indexOf('fourth') + 3 },
+                chord: { ctrl: false, alt: true, shift: false, key: 'g' },
+                compute(text) { return { start: 0, end: 0, value: text }; },
+            },
+            {
+                id: 'enSelectToNodeStart', context: 'eigennode', driver: 'manual', highlightType: 'select',
+                keysDisplay: 'Shift+Alt+G', instruction: 'In EigenNode: highlight from the cursor to the very beginning of this node.',
+                sample: { text: KN_D, pos: KN_D.indexOf('fourth') + 3 },
+                chord: { ctrl: false, alt: true, shift: true, key: 'g' },
+                compute(text, pos) { return { start: 0, end: pos, value: text }; },
+            },
+            {
+                id: 'enGotoNodeEnd', context: 'eigennode', driver: 'manual', highlightType: 'move',
+                keysDisplay: 'Shift+Alt+L', instruction: 'In EigenNode: jump to the very end of this node, across all its lines.',
+                trapNote: 'Different from the plain Alt+L, which only goes to the end of the current line.',
+                sample: { text: KN_D, pos: KN_D.indexOf('second') + 2 },
+                chord: { ctrl: false, alt: true, shift: true, key: 'l' },
+                compute(text) { return { start: text.length, end: text.length, value: text }; },
+            },
+            {
+                id: 'enDeleteToNodeEnd', context: 'eigennode', driver: 'manual', highlightType: 'delete',
+                keysDisplay: 'Ctrl+Alt+Shift+;', instruction: 'In EigenNode: delete from the cursor to the end of this node, across all its lines.',
+                trapNote: 'Plain Ctrl+Alt+; inside EigenNode instead deletes the whole node.',
+                sample: { text: KN_D, pos: KN_D.indexOf('third') + 3 },
+                chord: { ctrl: true, alt: true, shift: true, key: ';' },
+                compute(text, pos) {
+                    return { start: pos, end: pos, value: text.slice(0, pos), delFrom: pos, delTo: text.length };
+                },
+            },
+            {
+                id: 'enDeleteWholeNode', context: 'eigennode', driver: 'quiz', highlightType: 'delete',
+                keysDisplay: 'Ctrl+Alt+;',
+                instruction: 'In EigenNode, which shortcut deletes this entire node — not just some text inside it?',
+                trapNote: 'Outside EigenNode, this same combo instead deletes from the cursor to the end of the line — the meaning changes because EigenNode has focus.',
+                sample: { text: 'Buy groceries for the week', pos: 10 },
+                choices: ['Ctrl+Alt+;', 'Ctrl+Alt+Shift+;', 'Ctrl+;', 'Backspace'],
+                correctChoice: 'Ctrl+Alt+;',
+            },
+        ];
+
+        class KeyboardShortcutsSkill extends Skill {
+            constructor() {
+                super('kb-shortcuts', 'Text Navigation Shortcuts');
+            }
+
+            generateTrial() {
+                const move = KB_MOVES[Math.floor(Math.random() * KB_MOVES.length)];
+                const sample = move.sample;
+                const badgeClass = move.context === 'eigennode' ? 'eigennode' : '';
+                const badgeLabel = move.context === 'eigennode' ? 'EigenNode' : 'Anywhere';
+                let inputHTML;
+
+                if (move.driver === 'quiz') {
+                    const highlight = { type: 'delete', from: 0, to: sample.text.length };
+                    const preview = knRenderPreview(sample.text, sample.pos, highlight);
+                    const buttons = move.choices.map(c =>
+                        `<button type="button" class="kb-choice" data-choice="${knEscHtml(c)}">${knEscHtml(c)}</button>`
+                    ).join('');
+                    inputHTML = `
+                        <div class="kb-badge ${badgeClass}">${badgeLabel}</div>
+                        <div class="kb-preview">${preview}</div>
+                        <div class="kb-choices">${buttons}</div>
+                    `;
+                } else {
+                    const finalState = move.compute(sample.text, sample.pos);
+                    let highlight;
+                    if (move.highlightType === 'move') {
+                        highlight = { type: 'move', to: finalState.start };
+                    } else if (move.highlightType === 'select') {
+                        highlight = { type: 'select', from: sample.pos, to: (finalState.start === sample.pos ? finalState.end : finalState.start) };
+                    } else {
+                        highlight = { type: 'delete', from: finalState.delFrom, to: finalState.delTo };
+                    }
+                    const preview = knRenderPreview(sample.text, sample.pos, highlight);
+                    const rows = Math.max(2, sample.text.split('\n').length);
+                    inputHTML = `
+                        <div class="kb-badge ${badgeClass}">${badgeLabel}</div>
+                        <div class="kb-preview">${preview}</div>
+                        <textarea class="kb-textarea" id="kbArea" wrap="off" spellcheck="false" rows="${rows}"></textarea>
+                    `;
+                }
+
                 return {
-                    score: score,
-                    feedback: `Correct answer: ${correct}° (You said ${userAnswer}°, off by ${diff}°)`
+                    question: move.instruction,
+                    inputHTML,
+                    correctAnswer: null,
+                    _move: move,
+                    _sample: sample,
                 };
+            }
+
+            onTrialRendered(trial, inputArea, app) {
+                const move = trial._move;
+                const sample = trial._sample;
+
+                if (move.driver === 'quiz') {
+                    const buttons = inputArea.querySelectorAll('.kb-choice');
+                    buttons.forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            buttons.forEach(b => b.disabled = true);
+                            const chosen = btn.getAttribute('data-choice');
+                            const isCorrect = chosen === move.correctChoice;
+                            btn.style.borderColor = isCorrect ? '#28a745' : '#dc3545';
+                            trial._liveResult = {
+                                correct: isCorrect,
+                                feedback: isCorrect
+                                    ? `${move.keysDisplay}. ${move.trapNote || ''}`
+                                    : `It's ${move.keysDisplay}. ${move.trapNote || ''}`,
+                            };
+                            app.submitAnswer();
+                        });
+                    });
+                    return;
+                }
+
+                const textarea = inputArea.querySelector('#kbArea');
+                textarea.value = sample.text;
+                textarea.setSelectionRange(sample.pos, sample.pos);
+
+                const finalState = move.compute(sample.text, sample.pos);
+                let graded = false;
+
+                const grade = (isCorrect) => {
+                    if (graded) return;
+                    graded = true;
+                    textarea.value = finalState.value;
+                    textarea.setSelectionRange(finalState.start, finalState.end);
+                    textarea.readOnly = true;
+                    trial._liveResult = {
+                        correct: isCorrect,
+                        feedback: isCorrect
+                            ? `${move.keysDisplay}${move.trapNote ? ' — ' + move.trapNote : ''}`
+                            : `That's ${move.keysDisplay}.${move.trapNote ? ' ' + move.trapNote : ''}`,
+                    };
+                    app.submitAnswer();
+                };
+
+                if (move.driver === 'manual') {
+                    textarea.addEventListener('keydown', (e) => {
+                        if (graded) return;
+                        const c = move.chord;
+                        const match = !!c.ctrl === e.ctrlKey && !!c.alt === e.altKey && !!c.shift === e.shiftKey
+                            && e.key.toLowerCase() === c.key.toLowerCase();
+                        if (match) e.preventDefault();
+                        grade(match);
+                    });
+                } else {
+                    let debounceTimer = null;
+                    textarea.addEventListener('keydown', (e) => {
+                        if (!graded && e.key === 'Enter') e.preventDefault();
+                    });
+                    textarea.addEventListener('keyup', () => {
+                        if (graded) return;
+                        clearTimeout(debounceTimer);
+                        debounceTimer = setTimeout(() => {
+                            const ok = textarea.selectionStart === finalState.start
+                                && textarea.selectionEnd === finalState.end
+                                && textarea.value === finalState.value;
+                            grade(ok);
+                        }, 220);
+                    });
+                }
+            }
+
+            checkAnswer(trial) {
+                const r = trial._liveResult || { correct: false, feedback: 'No action detected — try again next round.' };
+                return { score: r.correct ? 1 : 0, correct: r.correct, feedback: r.feedback };
             }
         }
 
