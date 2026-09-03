@@ -1691,8 +1691,14 @@
                     textarea.addEventListener('keydown', (e) => {
                         if (!graded && e.key === 'Enter') e.preventDefault();
                     });
-                    textarea.addEventListener('keyup', () => {
-                        if (graded) return;
+                    textarea.addEventListener('keyup', (e) => {
+                        // The Enter that just advanced this trial moves focus to
+                        // this fresh textarea synchronously (inside the same
+                        // keypress handler), so its keyup fires here a moment
+                        // later even though it targeted the Continue button at
+                        // keydown time. None of the trained shortcuts use Enter,
+                        // so it's always safe to ignore it here.
+                        if (graded || e.key === 'Enter') return;
                         clearTimeout(debounceTimer);
                         debounceTimer = setTimeout(() => {
                             const ok = textarea.selectionStart === finalState.start
