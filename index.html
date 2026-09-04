@@ -694,6 +694,21 @@
                 this.registerSkills();
                 this.updateUI();
                 this.initAuth();
+                this.checkUrlSkill();
+            }
+
+            // A skill can be linked/bookmarked directly via ?skill=<id> - jump
+            // straight into practicing it instead of showing the home screen.
+            checkUrlSkill() {
+                const skillId = new URLSearchParams(location.search).get('skill');
+                if (skillId && this.skills.some(s => s.id === skillId)) {
+                    this.startPractice(skillId);
+                }
+            }
+
+            updateUrlForSkill(skillId) {
+                const url = skillId ? `?skill=${encodeURIComponent(skillId)}` : location.pathname;
+                history.replaceState(null, '', url);
             }
 
             initAuth() {
@@ -964,6 +979,7 @@
                 this.currentSkill = skillId
                     ? this.skills.find(s => s.id === skillId) || this.chooseSkill()
                     : this.chooseSkill();
+                this.updateUrlForSkill(this.currentSkill.id);
                 this.sessionStartTime = Date.now();
                 this.remainingSeconds = this.practiceTimeSeconds;
                 this.sessionData = {
@@ -1039,7 +1055,8 @@
                 }
                 
                 this.saveUserData();
-                
+                this.updateUrlForSkill(null);
+
                 // Return to home
                 document.getElementById('practiceScreen').classList.remove('active');
                 document.getElementById('homeScreen').classList.add('active');
