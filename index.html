@@ -1441,100 +1441,162 @@
             return html;
         }
 
-        const KN_A = 'the quick brown fox jumps over the lazy dog';
-        const KN_B = 'close the loop before you ship the fix';
-        const KN_D = 'first line of text\nsecond line here\nthird line now\nfourth one too\nfifth line goes\nsixth and last';
-        const KN_E = 'alpha bravo\ncharlie delta\necho foxtrot\ngolf hotel';
+        // Single-line samples (varied vocabulary so the same snippet doesn't
+        // keep reappearing) and multi-line samples for line/node-scoped moves.
+        const KN_S1 = 'the quick brown fox jumps over the lazy dog';
+        const KN_S2 = 'close the loop before you ship the fix';
+        const KN_S3 = 'always double check the units before submitting';
+        const KN_S4 = 'measure twice and cut once before you commit';
+        const KN_S5 = 'never trust a shortcut you have not tested yet';
+        const KN_S6 = 'small steady habits beat big rare bursts of effort';
+        const KN_M1 = 'first line of text\nsecond line here\nthird line now\nfourth one too\nfifth line goes\nsixth and last';
+        const KN_M2 = 'alpha bravo\ncharlie delta\necho foxtrot\ngolf hotel';
+        const KN_M3 = 'monday morning start\ntuesday keeps going\nwednesday halfway there\nthursday almost done\nfriday final push\nsaturday well earned rest';
+        const KN_M4 = 'north star bright\nsouth wind cold\neast light early\nwest sky red';
 
         const KB_MOVES = [
             {
                 id: 'charLeft', context: 'global', driver: 'native', highlightType: 'move',
                 keysDisplay: 'Ctrl+H', instruction: 'Move the cursor one character to the left.',
-                sample: { text: KN_A, pos: KN_A.indexOf('jumps') },
+                samples: [
+                    { text: KN_S1, pos: KN_S1.indexOf('jumps') },
+                    { text: KN_S2, pos: KN_S2.indexOf('ship') },
+                    { text: KN_S3, pos: KN_S3.indexOf('units') },
+                ],
                 compute(text, pos) { const t = pos - 1; return { start: t, end: t, value: text }; },
             },
             {
                 id: 'charRight', context: 'global', driver: 'native', highlightType: 'move',
                 keysDisplay: 'Ctrl+L', instruction: 'Move the cursor one character to the right.',
-                sample: { text: KN_A, pos: KN_A.indexOf('jumps') },
+                samples: [
+                    { text: KN_S1, pos: KN_S1.indexOf('jumps') },
+                    { text: KN_S4, pos: KN_S4.indexOf('cut') },
+                    { text: KN_S5, pos: KN_S5.indexOf('trust') },
+                ],
                 compute(text, pos) { const t = pos + 1; return { start: t, end: t, value: text }; },
             },
             {
                 id: 'wordLeft', context: 'global', driver: 'native', highlightType: 'move',
                 keysDisplay: 'Ctrl+Shift+H', instruction: 'Move the cursor back one word.',
-                sample: { text: KN_A, pos: KN_A.indexOf('jumps') + 3 },
+                samples: [
+                    { text: KN_S1, pos: KN_S1.indexOf('jumps') + 3 },
+                    { text: KN_S3, pos: KN_S3.indexOf('double') + 3 },
+                    { text: KN_S6, pos: KN_S6.indexOf('steady') + 3 },
+                ],
                 compute(text, pos) { const t = knWordBack(text, pos); return { start: t, end: t, value: text }; },
             },
             {
                 id: 'wordRight', context: 'global', driver: 'native', highlightType: 'move',
                 keysDisplay: 'Ctrl+Shift+L', instruction: 'Move the cursor forward one word.',
-                sample: { text: KN_A, pos: KN_A.indexOf('jumps') },
+                samples: [
+                    { text: KN_S1, pos: KN_S1.indexOf('jumps') },
+                    { text: KN_S4, pos: KN_S4.indexOf('measure') },
+                    { text: KN_S6, pos: KN_S6.indexOf('small') },
+                ],
                 compute(text, pos) { const t = knWordForward(text, pos); return { start: t, end: t, value: text }; },
             },
             {
                 id: 'home', context: 'global', driver: 'native', highlightType: 'move',
                 keysDisplay: 'Alt+H', instruction: 'Move the cursor to the beginning of the line.',
-                sample: { text: KN_A, pos: KN_A.indexOf('jumps') },
+                samples: [
+                    { text: KN_S1, pos: KN_S1.indexOf('jumps') },
+                    { text: KN_S2, pos: KN_S2.indexOf('ship') },
+                    { text: KN_S5, pos: KN_S5.indexOf('tested') },
+                ],
                 compute(text, pos) { const t = knLineBounds(text, pos).start; return { start: t, end: t, value: text }; },
             },
             {
                 id: 'end', context: 'global', driver: 'native', highlightType: 'move',
                 keysDisplay: 'Alt+L', instruction: 'Move the cursor to the end of the line.',
-                sample: { text: KN_A, pos: KN_A.indexOf('jumps') },
+                samples: [
+                    { text: KN_S1, pos: KN_S1.indexOf('jumps') },
+                    { text: KN_S3, pos: KN_S3.indexOf('units') },
+                    { text: KN_S4, pos: KN_S4.indexOf('cut') },
+                ],
                 compute(text, pos) { const t = knLineBounds(text, pos).end; return { start: t, end: t, value: text }; },
             },
             {
                 id: 'selHome', context: 'global', driver: 'native', highlightType: 'select',
                 keysDisplay: 'Shift+Win+H', instruction: 'Highlight from the cursor to the beginning of the line.',
-                sample: { text: KN_A, pos: KN_A.indexOf('jumps') },
+                samples: [
+                    { text: KN_S1, pos: KN_S1.indexOf('jumps') },
+                    { text: KN_S5, pos: KN_S5.indexOf('trust') },
+                    { text: KN_S6, pos: KN_S6.indexOf('beat') },
+                ],
                 compute(text, pos) { const t = knLineBounds(text, pos).start; return { start: Math.min(pos, t), end: Math.max(pos, t), value: text }; },
             },
             {
                 id: 'selEnd', context: 'global', driver: 'native', highlightType: 'select',
                 keysDisplay: 'Shift+Win+L', instruction: 'Highlight from the cursor to the end of the line.',
-                sample: { text: KN_A, pos: KN_A.indexOf('jumps') },
+                samples: [
+                    { text: KN_S1, pos: KN_S1.indexOf('jumps') },
+                    { text: KN_S2, pos: KN_S2.indexOf('ship') },
+                    { text: KN_S3, pos: KN_S3.indexOf('double') },
+                ],
                 compute(text, pos) { const t = knLineBounds(text, pos).end; return { start: Math.min(pos, t), end: Math.max(pos, t), value: text }; },
             },
             {
                 id: 'lineDown', context: 'global', driver: 'native', highlightType: 'move',
                 keysDisplay: 'Ctrl+J', instruction: 'Move the cursor down one line, keeping the same column.',
-                sample: { text: KN_E, pos: KN_E.indexOf('bravo') + 1 },
+                samples: [
+                    { text: KN_M2, pos: KN_M2.indexOf('bravo') + 1 },
+                    { text: KN_M4, pos: KN_M4.indexOf('north') + 2 },
+                ],
                 compute(text, pos) { const t = knMoveLines(text, pos, 1); return { start: t, end: t, value: text }; },
             },
             {
                 id: 'lineUp', context: 'global', driver: 'native', highlightType: 'move',
                 keysDisplay: 'Ctrl+K', instruction: 'Move the cursor up one line, keeping the same column.',
-                sample: { text: KN_E, pos: KN_E.indexOf('foxtrot') + 2 },
+                samples: [
+                    { text: KN_M2, pos: KN_M2.indexOf('foxtrot') + 2 },
+                    { text: KN_M4, pos: KN_M4.indexOf('east') + 1 },
+                ],
                 compute(text, pos) { const t = knMoveLines(text, pos, -1); return { start: t, end: t, value: text }; },
             },
             {
                 id: 'selLineDown', context: 'global', driver: 'native', highlightType: 'select',
                 keysDisplay: 'Ctrl+Shift+J', instruction: 'Highlight from the cursor down one line.',
-                sample: { text: KN_E, pos: KN_E.indexOf('bravo') },
+                samples: [
+                    { text: KN_M2, pos: KN_M2.indexOf('bravo') },
+                    { text: KN_M4, pos: KN_M4.indexOf('north') },
+                ],
                 compute(text, pos) { const t = knMoveLines(text, pos, 1); return { start: Math.min(pos, t), end: Math.max(pos, t), value: text }; },
             },
             {
                 id: 'selLineUp', context: 'global', driver: 'native', highlightType: 'select',
                 keysDisplay: 'Ctrl+Shift+K', instruction: 'Highlight from the cursor up one line.',
-                sample: { text: KN_E, pos: KN_E.indexOf('foxtrot') },
+                samples: [
+                    { text: KN_M2, pos: KN_M2.indexOf('foxtrot') },
+                    { text: KN_M4, pos: KN_M4.indexOf('east') },
+                ],
                 compute(text, pos) { const t = knMoveLines(text, pos, -1); return { start: Math.min(pos, t), end: Math.max(pos, t), value: text }; },
             },
             {
                 id: 'down5', context: 'global', driver: 'native', highlightType: 'move',
                 keysDisplay: 'Ctrl+Win+J', instruction: 'Move the cursor down 5 lines.',
-                sample: { text: KN_D, pos: KN_D.indexOf('first') + 2 },
+                samples: [
+                    { text: KN_M1, pos: KN_M1.indexOf('first') + 2 },
+                    { text: KN_M3, pos: KN_M3.indexOf('monday') + 2 },
+                ],
                 compute(text, pos) { const t = knMoveLines(text, pos, 5); return { start: t, end: t, value: text }; },
             },
             {
                 id: 'up5', context: 'global', driver: 'native', highlightType: 'move',
                 keysDisplay: 'Ctrl+Win+K', instruction: 'Move the cursor up 5 lines.',
-                sample: { text: KN_D, pos: KN_D.indexOf('last') },
+                samples: [
+                    { text: KN_M1, pos: KN_M1.indexOf('last') },
+                    { text: KN_M3, pos: KN_M3.indexOf('rest') },
+                ],
                 compute(text, pos) { const t = knMoveLines(text, pos, -5); return { start: t, end: t, value: text }; },
             },
             {
                 id: 'delChar', context: 'global', driver: 'native', highlightType: 'delete',
                 keysDisplay: 'Ctrl+;', instruction: 'Delete the character right after the cursor.',
-                sample: { text: KN_A, pos: KN_A.indexOf('jumps') },
+                samples: [
+                    { text: KN_S1, pos: KN_S1.indexOf('jumps') },
+                    { text: KN_S4, pos: KN_S4.indexOf('cut') },
+                    { text: KN_S6, pos: KN_S6.indexOf('beat') },
+                ],
                 compute(text, pos) {
                     return { start: pos, end: pos, value: text.slice(0, pos) + text.slice(pos + 1), delFrom: pos, delTo: pos + 1 };
                 },
@@ -1542,7 +1604,11 @@
             {
                 id: 'delWord', context: 'global', driver: 'native', highlightType: 'delete',
                 keysDisplay: 'Ctrl+Shift+;', instruction: 'Delete from the cursor to the start of the next word.',
-                sample: { text: KN_B, pos: KN_B.indexOf('before') },
+                samples: [
+                    { text: KN_S2, pos: KN_S2.indexOf('before') },
+                    { text: KN_S5, pos: KN_S5.indexOf('have') },
+                    { text: KN_S3, pos: KN_S3.indexOf('check') },
+                ],
                 compute(text, pos) {
                     const t = knWordForward(text, pos);
                     return { start: pos, end: pos, value: text.slice(0, pos) + text.slice(t), delFrom: pos, delTo: t };
@@ -1550,38 +1616,69 @@
             },
             {
                 id: 'delToEOL', context: 'global', driver: 'native', highlightType: 'delete',
-                keysDisplay: 'Ctrl+Alt+;', instruction: 'Delete from the cursor to the end of the line.',
-                trapNote: "Same combo deletes the whole node when EigenNode is focused — this is the \"everywhere else\" meaning.",
-                sample: { text: KN_A, pos: KN_A.indexOf('jumps') },
+                keysDisplay: 'Ctrl+Alt+Shift+;', instruction: 'Delete from the cursor to the end of the line.',
+                trapNote: "Matches EigenNode's own Ctrl+Alt+Shift+; too.",
+                samples: [
+                    { text: KN_S1, pos: KN_S1.indexOf('jumps') },
+                    { text: KN_S3, pos: KN_S3.indexOf('units') },
+                    { text: KN_S6, pos: KN_S6.indexOf('beat') },
+                ],
                 compute(text, pos) {
                     const le = knLineBounds(text, pos).end;
                     return { start: pos, end: pos, value: text.slice(0, pos) + text.slice(le), delFrom: pos, delTo: le };
                 },
             },
             {
+                id: 'delLine', context: 'global', driver: 'native', highlightType: 'delete',
+                keysDisplay: 'Ctrl+Alt+;', instruction: 'Delete the entire current line.',
+                trapNote: 'Matches EigenNode\'s own Ctrl+Alt+; ("delete item") too.',
+                samples: [
+                    { text: KN_M1, pos: KN_M1.indexOf('third') + 3 },
+                    { text: KN_M3, pos: KN_M3.indexOf('wednesday') + 3 },
+                ],
+                compute(text, pos) {
+                    const home = knLineBounds(text, pos).start;
+                    const target = knMoveLines(text, home, 1);
+                    return { start: home, end: home, value: text.slice(0, home) + text.slice(target), delFrom: home, delTo: target };
+                },
+            },
+            {
                 id: 'selToEOL2', context: 'global', driver: 'native', highlightType: 'select',
                 keysDisplay: "Ctrl+Alt+'", instruction: 'Highlight from the cursor to the end of the line (a second shortcut for the same result as Shift+Win+L).',
-                sample: { text: KN_A, pos: KN_A.indexOf('jumps') },
+                samples: [
+                    { text: KN_S1, pos: KN_S1.indexOf('jumps') },
+                    { text: KN_S4, pos: KN_S4.indexOf('cut') },
+                    { text: KN_S5, pos: KN_S5.indexOf('trust') },
+                ],
                 compute(text, pos) { const t = knLineBounds(text, pos).end; return { start: Math.min(pos, t), end: Math.max(pos, t), value: text }; },
             },
             {
                 id: 'docStart', context: 'global', driver: 'native', highlightType: 'move',
                 keysDisplay: 'Ctrl+Shift+U', instruction: 'Jump to the very beginning of the whole text.',
-                sample: { text: KN_D, pos: KN_D.indexOf('third') + 3 },
+                samples: [
+                    { text: KN_M1, pos: KN_M1.indexOf('third') + 3 },
+                    { text: KN_M3, pos: KN_M3.indexOf('thursday') + 3 },
+                ],
                 compute(text) { return { start: 0, end: 0, value: text }; },
             },
             {
                 id: 'enGotoNodeStart', context: 'eigennode', driver: 'manual', highlightType: 'move',
                 keysDisplay: 'Alt+G', instruction: 'In EigenNode: move the cursor to the very beginning of this node (not just this line).',
                 trapNote: 'Different from the global Alt+H, which only goes to the start of the current line.',
-                sample: { text: KN_D, pos: KN_D.indexOf('fourth') + 3 },
+                samples: [
+                    { text: KN_M1, pos: KN_M1.indexOf('fourth') + 3 },
+                    { text: KN_M3, pos: KN_M3.indexOf('friday') + 3 },
+                ],
                 chord: { ctrl: false, alt: true, shift: false, key: 'g' },
                 compute(text) { return { start: 0, end: 0, value: text }; },
             },
             {
                 id: 'enSelectToNodeStart', context: 'eigennode', driver: 'manual', highlightType: 'select',
                 keysDisplay: 'Shift+Alt+G', instruction: 'In EigenNode: highlight from the cursor to the very beginning of this node.',
-                sample: { text: KN_D, pos: KN_D.indexOf('fourth') + 3 },
+                samples: [
+                    { text: KN_M1, pos: KN_M1.indexOf('fourth') + 3 },
+                    { text: KN_M3, pos: KN_M3.indexOf('friday') + 3 },
+                ],
                 chord: { ctrl: false, alt: true, shift: true, key: 'g' },
                 compute(text, pos) { return { start: 0, end: pos, value: text }; },
             },
@@ -1589,7 +1686,10 @@
                 id: 'enGotoNodeEnd', context: 'eigennode', driver: 'manual', highlightType: 'move',
                 keysDisplay: 'Shift+Alt+L', instruction: 'In EigenNode: jump to the very end of this node, across all its lines.',
                 trapNote: 'Different from the plain Alt+L, which only goes to the end of the current line.',
-                sample: { text: KN_D, pos: KN_D.indexOf('second') + 2 },
+                samples: [
+                    { text: KN_M1, pos: KN_M1.indexOf('second') + 2 },
+                    { text: KN_M3, pos: KN_M3.indexOf('tuesday') + 2 },
+                ],
                 chord: { ctrl: false, alt: true, shift: true, key: 'l' },
                 compute(text) { return { start: text.length, end: text.length, value: text }; },
             },
@@ -1597,7 +1697,10 @@
                 id: 'enDeleteToNodeEnd', context: 'eigennode', driver: 'manual', highlightType: 'delete',
                 keysDisplay: 'Ctrl+Alt+Shift+;', instruction: 'In EigenNode: delete from the cursor to the end of this node, across all its lines.',
                 trapNote: 'Plain Ctrl+Alt+; inside EigenNode instead deletes the whole node.',
-                sample: { text: KN_D, pos: KN_D.indexOf('third') + 3 },
+                samples: [
+                    { text: KN_M1, pos: KN_M1.indexOf('third') + 3 },
+                    { text: KN_M3, pos: KN_M3.indexOf('wednesday') + 3 },
+                ],
                 chord: { ctrl: true, alt: true, shift: true, key: ';' },
                 compute(text, pos) {
                     return { start: pos, end: pos, value: text.slice(0, pos), delFrom: pos, delTo: text.length };
@@ -1607,8 +1710,12 @@
                 id: 'enDeleteWholeNode', context: 'eigennode', driver: 'quiz', highlightType: 'delete',
                 keysDisplay: 'Ctrl+Alt+;',
                 instruction: 'In EigenNode, which shortcut deletes this entire node — not just some text inside it?',
-                trapNote: 'Outside EigenNode, this same combo instead deletes from the cursor to the end of the line — the meaning changes because EigenNode has focus.',
-                sample: { text: 'Buy groceries for the week', pos: 10 },
+                trapNote: 'This matches the same combo everywhere else too - Ctrl+Alt+; always deletes the whole line or item now.',
+                samples: [
+                    { text: 'Buy groceries for the week', pos: 10 },
+                    { text: 'Call the dentist tomorrow', pos: 8 },
+                    { text: 'Review pull request forty two', pos: 12 },
+                ],
                 choices: ['Ctrl+Alt+;', 'Ctrl+Alt+Shift+;', 'Ctrl+;', 'Backspace'],
                 correctChoice: 'Ctrl+Alt+;',
             },
@@ -1617,11 +1724,16 @@
         class KeyboardShortcutsSkill extends Skill {
             constructor() {
                 super('kb-shortcuts', 'Text Navigation Shortcuts');
+                this.lastMoveId = null;
             }
 
             generateTrial() {
-                const move = KB_MOVES[Math.floor(Math.random() * KB_MOVES.length)];
-                const sample = move.sample;
+                let move;
+                do {
+                    move = KB_MOVES[Math.floor(Math.random() * KB_MOVES.length)];
+                } while (move.id === this.lastMoveId && KB_MOVES.length > 1);
+                this.lastMoveId = move.id;
+                const sample = move.samples[Math.floor(Math.random() * move.samples.length)];
                 const badgeClass = move.context === 'eigennode' ? 'eigennode' : '';
                 const badgeLabel = move.context === 'eigennode' ? 'EigenNode' : 'Anywhere';
                 let inputHTML;
