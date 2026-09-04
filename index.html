@@ -1141,16 +1141,24 @@
                 document.getElementById('continueButton').classList.remove('hidden');
                 document.getElementById('continueButton').focus();
 
-                // Set up keyboard listener for advancing
-                this.advanceListener = (e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        document.removeEventListener('keypress', this.advanceListener);
-                        this.advanceListener = null;
-                        this.nextTrial();
-                    }
-                };
-                document.addEventListener('keypress', this.advanceListener);
+                // Set up keyboard listener for advancing. Delayed by a tick: the
+                // Enter that triggered this submitAnswer() call (e.g. "give up" in
+                // the keyboard-shortcuts skill, where Enter itself is both the
+                // graded action and the natural submit key) can still produce its
+                // own trailing keypress/keyup after this function returns - if the
+                // listener were live already, that same keystroke would instantly
+                // advance past the feedback the user just triggered.
+                setTimeout(() => {
+                    this.advanceListener = (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            document.removeEventListener('keypress', this.advanceListener);
+                            this.advanceListener = null;
+                            this.nextTrial();
+                        }
+                    };
+                    document.addEventListener('keypress', this.advanceListener);
+                }, 0);
             }
 
             updateSessionStats() {
@@ -1677,7 +1685,6 @@
                     const bail = () => {
                         if (graded) return;
                         grade(false, `It's ${move.keysDisplay}. ${move.trapNote || ''}`);
-                        app.nextTrial();
                     };
                     const bailListener = (e) => {
                         if (!graded && e.key === 'Enter') {
@@ -1731,7 +1738,6 @@
                 const bail = () => {
                     if (graded) return;
                     grade(false);
-                    app.nextTrial();
                 };
 
                 if (move.driver === 'manual') {
