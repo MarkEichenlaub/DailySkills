@@ -20,13 +20,13 @@ import { Skill } from './base.js';
 // global remap and can't be safely practiced live in a browser —
 // those are quick multiple-choice recall trials instead.
 
-function knFlashWrong(el) {
+export function knFlashWrong(el) {
     el.classList.remove('kb-flash-wrong');
     void el.offsetWidth; // restart the animation if it's already mid-flash
     el.classList.add('kb-flash-wrong');
 }
 
-function knEscHtml(s) {
+export function knEscHtml(s) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
@@ -75,7 +75,7 @@ function knMoveLines(text, pos, delta) {
 }
 
 // highlight: {type:'move', to} | {type:'select', from, to} | {type:'delete', from, to}
-function knRenderPreview(text, pos, highlight) {
+export function knRenderPreview(text, pos, highlight) {
     if (!highlight || highlight.type === 'move') {
         const to = highlight ? highlight.to : pos;
         const points = [...new Set([pos, to])].sort((a, b) => a - b);
@@ -93,12 +93,20 @@ function knRenderPreview(text, pos, highlight) {
     const from = Math.min(highlight.from, highlight.to);
     const to = Math.max(highlight.from, highlight.to);
     const cls = highlight.type === 'delete' ? 'kb-del' : 'kb-sel';
-    let html = knEscHtml(text.slice(0, from));
-    if (pos <= from) html += '<span class="kb-caret" title="cursor">┃</span>';
-    html += `<span class="${cls}">${knEscHtml(text.slice(from, to)) || '&nbsp;'}</span>`;
-    if (pos >= to) html += '<span class="kb-caret" title="cursor">┃</span>';
-    html += knEscHtml(text.slice(to));
-    return html;
+    const caret = '<span class="kb-caret" title="cursor">┃</span>';
+    const span = `<span class="${cls}">${knEscHtml(text.slice(from, to)) || '&nbsp;'}</span>`;
+    // The caret is drawn where it really is. In Edit to Target the cursor can
+    // sit lines away from the text being removed, and pinning it to the edge of
+    // the highlight would show a route that isn't the one you have to take.
+    if (pos <= from) {
+        return knEscHtml(text.slice(0, pos)) + caret + knEscHtml(text.slice(pos, from)) + span + knEscHtml(text.slice(to));
+    }
+    if (pos >= to) {
+        return knEscHtml(text.slice(0, from)) + span + knEscHtml(text.slice(to, pos)) + caret + knEscHtml(text.slice(pos));
+    }
+    return knEscHtml(text.slice(0, from))
+        + `<span class="${cls}">${knEscHtml(text.slice(from, pos))}${caret}${knEscHtml(text.slice(pos, to))}</span>`
+        + knEscHtml(text.slice(to));
 }
 
 // Single-line samples (varied vocabulary so the same snippet doesn't
