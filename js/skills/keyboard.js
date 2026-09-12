@@ -392,6 +392,8 @@ const KB_MOVES = [
 export class KeyboardShortcutsSkill extends Skill {
     constructor() {
         super('kb-shortcuts', 'Text Navigation Shortcuts');
+        // Pressing the chords is the whole skill, so it's hidden on a phone.
+        this.needsKeyboard = true;
         this.lastMoveId = null;
     }
 

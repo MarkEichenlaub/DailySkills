@@ -8,6 +8,8 @@ export class Skill {
     constructor(id, name) {
         this.id = id;
         this.name = name;
+        // Set by the skills that can only be practiced with a real keyboard.
+        this.needsKeyboard = false;
         this.data = {
             totalTrials: 0,
             correctTrials: 0,

@@ -71,6 +71,8 @@ function candidateTargets(text) {
 export class EditToTargetSkill extends Skill {
     constructor() {
         super('edit-target', 'Edit to Target');
+        // Same here - there are no keystrokes to count on a touchscreen.
+        this.needsKeyboard = true;
         this.lastSample = null;
     }
 

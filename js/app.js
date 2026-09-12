@@ -1,6 +1,15 @@
 import { db, auth } from './firebase.js';
 import { createSkills } from './skills/index.js';
 
+// A phone has no keys to press, so the skills that are about pressing keys are
+// hidden there rather than offered and then failed. A tablet with a keyboard or
+// a trackpad attached reports a fine pointer, and counts as a real computer.
+export function isTouchOnly() {
+    if (!window.matchMedia) return false;
+    return window.matchMedia('(pointer: coarse)').matches
+        && !window.matchMedia('(any-pointer: fine)').matches;
+}
+
 // Times are shown as seconds, since every trial here is a few seconds long.
 export function fmtSeconds(ms) {
     if (ms == null) return '-';
@@ -43,9 +52,30 @@ export class SkillPracticeApp {
     // straight into practicing it instead of showing the home screen.
     checkUrlSkill() {
         const skillId = new URLSearchParams(location.search).get('skill');
-        if (skillId && this.skills.some(s => s.id === skillId)) {
-            this.startPractice(skillId);
+        if (!skillId) return;
+        const skill = this.skills.find(s => s.id === skillId);
+        if (!skill) return;
+        // A bookmark for a keyboard skill opened on a phone stays on the home
+        // screen and says why, rather than starting something unplayable.
+        if (skill.needsKeyboard && isTouchOnly()) {
+            this.showNotice(`${skill.name} needs a keyboard. Open it on a computer.`);
+            this.updateUrlForSkill(null);
+            return;
         }
+        this.startPractice(skillId);
+    }
+
+    showNotice(text) {
+        const el = document.getElementById('notice');
+        if (!el) return;
+        el.textContent = text;
+        el.classList.remove('hidden');
+    }
+
+    // The skills that can actually be practiced on this device.
+    availableSkills() {
+        const touch = isTouchOnly();
+        return this.skills.filter(s => !(s.needsKeyboard && touch));
     }
 
     updateUrlForSkill(skillId) {
@@ -266,8 +296,8 @@ export class SkillPracticeApp {
         // Update skill list
         const skillList = document.getElementById('skillList');
         skillList.innerHTML = '';
-        
-        this.skills.forEach(skill => {
+
+        this.availableSkills().forEach(skill => {
             const skillData = skill.getData();
             const item = document.createElement('div');
             item.className = 'skill-item';
@@ -293,10 +323,11 @@ export class SkillPracticeApp {
         // Simple algorithm: choose skill that has been practiced least recently
         // or has lowest proficiency relative to goal
         
-        let bestSkill = this.skills[0];
+        const pool = this.availableSkills();
+        let bestSkill = pool[0];
         let bestScore = -Infinity;
-        
-        this.skills.forEach(skill => {
+
+        pool.forEach(skill => {
             const data = skill.getData();
             const recencyScore = data.lastPracticed ? 
                 (Date.now() - new Date(data.lastPracticed)) / (1000 * 60 * 60 * 24) : 999;
@@ -315,9 +346,12 @@ export class SkillPracticeApp {
     }
 
     startPractice(skillId) {
-        this.currentSkill = skillId
-            ? this.skills.find(s => s.id === skillId) || this.chooseSkill()
-            : this.chooseSkill();
+        const named = skillId ? this.skills.find(s => s.id === skillId) : null;
+        if (named && named.needsKeyboard && isTouchOnly()) {
+            this.showNotice(`${named.name} needs a keyboard. Open it on a computer.`);
+            return;
+        }
+        this.currentSkill = named || this.chooseSkill();
         this.updateUrlForSkill(this.currentSkill.id);
         this.sessionStartTime = Date.now();
         this.remainingSeconds = this.practiceTimeSeconds;
