@@ -15,8 +15,8 @@ import { FahrenheitToCelsiusSkill, CelsiusToFahrenheitSkill } from './temperatur
 
 export function createSkills() {
     return [
-        new KeyboardShortcutsSkill(),
         new EditToTargetSkill(),
+        new KeyboardShortcutsSkill(),
         new ShortcutRecallSkill(),
         new EstimationSkill(),
         new PhysicsFluencySkill(),

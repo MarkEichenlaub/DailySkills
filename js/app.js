@@ -2,14 +2,13 @@ import { db, auth } from './firebase.js';
 import { createSkills } from './skills/index.js';
 
 // A phone has no keys to press, so the skills that are about pressing keys are
-// hidden there rather than offered and then failed. This asks whether the
-// browser is a phone, not whether the screen is touch: a touchscreen laptop can
-// report a coarse primary pointer and no fine one, and that hid these skills on
-// Mark's laptop.
+// hidden there rather than offered and then failed. This goes by the device
+// being a phone or tablet, not by pointer type: a touchscreen laptop reports a
+// coarse primary pointer and used to lose these skills.
 export function isTouchOnly() {
     const uaData = navigator.userAgentData;
     if (uaData && typeof uaData.mobile === 'boolean') return uaData.mobile;
-    return /Android.+Mobile|iPhone|iPod|Windows Phone/i.test(navigator.userAgent || '');
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
 }
 
 // Times are shown as seconds, since every trial here is a few seconds long.
