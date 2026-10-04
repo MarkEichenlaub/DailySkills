@@ -89,37 +89,37 @@ function deleteSelectionOr(s, fn) {
 // turns each into the plain key in the comment, which a textarea handles
 // natively - which is why they can be practiced live in a browser at all.
 export const OPS = [
-    { id: 'charLeft', keys: 'Ctrl+H', // Left
+    { id: 'charLeft', keys: 'Ctrl+H', desc: 'back one character', // Left
       apply: s => st(s.text, Math.max(0, selection(s) ? collapsed(s, -1) : s.pos - 1)) },
-    { id: 'charRight', keys: 'Ctrl+L', // Right
+    { id: 'charRight', keys: 'Ctrl+L', desc: 'forward one character', // Right
       apply: s => st(s.text, Math.min(s.text.length, selection(s) ? collapsed(s, 1) : s.pos + 1)) },
-    { id: 'wordLeft', keys: 'Ctrl+Shift+H', // Ctrl+Left
+    { id: 'wordLeft', keys: 'Ctrl+Shift+H', desc: 'back one word', // Ctrl+Left
       apply: s => st(s.text, wordBack(s.text, collapsed(s, -1))) },
-    { id: 'wordRight', keys: 'Ctrl+Shift+L', // Ctrl+Right
+    { id: 'wordRight', keys: 'Ctrl+Shift+L', desc: 'forward one word', // Ctrl+Right
       apply: s => st(s.text, wordForward(s.text, collapsed(s, 1))) },
-    { id: 'home', keys: 'Alt+H', // Home
+    { id: 'home', keys: 'Alt+H', desc: 'start of line', // Home
       apply: s => st(s.text, lineBounds(s.text, collapsed(s, -1)).start) },
-    { id: 'end', keys: 'Alt+L', // End
+    { id: 'end', keys: 'Alt+L', desc: 'end of line', // End
       apply: s => st(s.text, lineBounds(s.text, collapsed(s, 1)).end) },
-    { id: 'selHome', keys: 'Shift+Win+H', // Shift+Home
+    { id: 'selHome', keys: 'Shift+Win+H', desc: 'select to start of line', // Shift+Home
       apply: s => st(s.text, lineBounds(s.text, s.pos).start, s.anchor === null ? s.pos : s.anchor) },
-    { id: 'selEnd', keys: 'Shift+Win+L', // Shift+End
+    { id: 'selEnd', keys: 'Shift+Win+L', desc: 'select to end of line', // Shift+End
       apply: s => st(s.text, lineBounds(s.text, s.pos).end, s.anchor === null ? s.pos : s.anchor) },
-    { id: 'lineDown', keys: 'Ctrl+J', // Down
+    { id: 'lineDown', keys: 'Ctrl+J', desc: 'down one line', // Down
       apply: s => st(s.text, moveLines(s.text, collapsed(s, 1), 1)) },
-    { id: 'lineUp', keys: 'Ctrl+K', // Up
+    { id: 'lineUp', keys: 'Ctrl+K', desc: 'up one line', // Up
       apply: s => st(s.text, moveLines(s.text, collapsed(s, -1), -1)) },
-    { id: 'selLineDown', keys: 'Ctrl+Shift+J', // Shift+Down
+    { id: 'selLineDown', keys: 'Ctrl+Shift+J', desc: 'select down one line', // Shift+Down
       apply: s => st(s.text, moveLines(s.text, s.pos, 1), s.anchor === null ? s.pos : s.anchor) },
-    { id: 'selLineUp', keys: 'Ctrl+Shift+K', // Shift+Up
+    { id: 'selLineUp', keys: 'Ctrl+Shift+K', desc: 'select up one line', // Shift+Up
       apply: s => st(s.text, moveLines(s.text, s.pos, -1), s.anchor === null ? s.pos : s.anchor) },
-    { id: 'docStart', keys: 'Ctrl+Shift+U', // Ctrl+Home
+    { id: 'docStart', keys: 'Ctrl+Shift+U', desc: 'start of text', // Ctrl+Home
       apply: s => st(s.text, 0) },
-    { id: 'delChar', keys: 'Ctrl+;', // Delete
+    { id: 'delChar', keys: 'Ctrl+;', desc: 'delete next character', // Delete
       apply: s => deleteSelectionOr(s, x => cut(x, x.pos, x.pos + 1)) },
-    { id: 'delWord', keys: 'Ctrl+Shift+;', // Ctrl+Delete
+    { id: 'delWord', keys: 'Ctrl+Shift+;', desc: 'delete next word', // Ctrl+Delete
       apply: s => deleteSelectionOr(s, x => cut(x, x.pos, wordForward(x.text, x.pos))) },
-    { id: 'delToEOL', keys: 'Ctrl+Alt+Shift+;', // Shift+End, Backspace
+    { id: 'delToEOL', keys: 'Ctrl+Alt+Shift+;', desc: 'delete to end of line', // Shift+End, Backspace
       apply: s => {
           const lineEnd = lineBounds(s.text, s.pos).end;
           // Shift+End selects nothing when the caret is already at the end of
@@ -128,7 +128,7 @@ export const OPS = [
           if (lineEnd === s.pos) return cut(s, s.pos - 1, s.pos);
           return cut(s, s.pos, lineEnd);
       } },
-    { id: 'delLine', keys: 'Ctrl+Alt+;', // Home, Shift+Down, Delete
+    { id: 'delLine', keys: 'Ctrl+Alt+;', desc: 'delete the whole line', // Home, Shift+Down, Delete
       apply: s => {
           const { start } = lineBounds(s.text, s.pos);
           const to = moveLines(s.text, start, 1);

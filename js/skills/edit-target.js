@@ -155,7 +155,7 @@ export class EditToTargetSkill extends Skill {
         let keystrokes = 0;
         let graded = false;
 
-        const chordList = () => trial._path.map(id => OP_BY_ID[id].keys).join(' → ');
+        const chordList = () => trial._path.map(id => `${OP_BY_ID[id].keys} (${OP_BY_ID[id].desc})`).join(' → ');
 
         const grade = (reached) => {
             if (graded) return;
