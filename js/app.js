@@ -502,7 +502,18 @@ export class SkillPracticeApp {
         // Focus input
         const input = inputArea.querySelector('input, textarea');
         if (input) {
-            input.focus();
+            // Focusing normally scrolls the input to the middle of the screen,
+            // which on a phone pushes the top of the problem off screen. Focus
+            // without scrolling, then put the problem's top at the top of the
+            // view; the on-screen keyboard resizes the viewport a moment later,
+            // so do it again then.
+            input.focus({ preventScroll: true });
+            const showProblem = () => {
+                const top = document.getElementById('questionText').getBoundingClientRect().top;
+                if (top < 0 || top > 8) window.scrollBy(0, top - 8);
+            };
+            showProblem();
+            setTimeout(showProblem, 350);
             input.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     // Stop this Enter keypress from also bubbling to the
